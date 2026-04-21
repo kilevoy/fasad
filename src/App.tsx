@@ -2,9 +2,11 @@ import './index.css'
 import { facadeCassetteTypes } from './entities/catalog/facade-cassette-types'
 import { inventoryModules } from './entities/catalog/inventory-modules'
 import { createDemoProject } from './features/calculator/model/create-demo-project'
+import { calculateProjectGeometry } from './features/calculator/model/geometry'
 import type { FacadeCassetteType } from './entities/project/types'
 
 const project = createDemoProject()
+const projectGeometry = calculateProjectGeometry(project)
 
 function formatArea(value: number) {
   return new Intl.NumberFormat('ru-RU', {
@@ -134,7 +136,7 @@ function App() {
         <section className="section">
           <div className="section-heading">
             <span className="section-kicker">Demo-проект</span>
-            <h2>Как выглядит структура расчета</h2>
+            <h2>Первый реальный расчет геометрии</h2>
           </div>
           <div className="grid two-up">
             <article className="card">
@@ -143,11 +145,11 @@ function App() {
               <dl className="spec-list">
                 <div>
                   <dt>Фасадов</dt>
-                  <dd>{formatInteger(project.facades.length)}</dd>
+                  <dd>{formatInteger(projectGeometry.facadeCount)}</dd>
                 </div>
                 <div>
                   <dt>Проемов</dt>
-                  <dd>{formatInteger(project.facades[0].openings.length)}</dd>
+                  <dd>{formatInteger(projectGeometry.totalOpeningCount)}</dd>
                 </div>
                 <div>
                   <dt>Тип кассеты</dt>
@@ -157,19 +159,54 @@ function App() {
                   <dt>Утепление</dt>
                   <dd>{project.insulation.thicknessMm} мм</dd>
                 </div>
+                <div>
+                  <dt>Площадь фасадов брутто</dt>
+                  <dd>{formatArea(projectGeometry.totalGrossAreaM2)} м²</dd>
+                </div>
+                <div>
+                  <dt>Площадь проемов</dt>
+                  <dd>{formatArea(projectGeometry.totalOpeningAreaM2)} м²</dd>
+                </div>
+                <div>
+                  <dt>Полезная площадь нетто</dt>
+                  <dd>{formatArea(projectGeometry.totalNetAreaM2)} м²</dd>
+                </div>
               </dl>
             </article>
             <article className="card">
-              <h3>Следующие шаги разработки</h3>
-              <ol className="numbered-list">
-                <li>Реализовать расчет геометрии фасада и проемов.</li>
-                <li>Добавить раскладку кассет КФ-1...КФ-4.</li>
-                <li>Подключить расчет подсистемы, утеплителя и мембраны.</li>
-                <li>Посчитать саморезы, заклепки, дюбели и анкеры.</li>
-                <li>Подтянуть цены из Excel-прайса и собрать коммерческий итог.</li>
-              </ol>
+              <h3>Детализация по фасадам</h3>
+              <div className="facade-metrics">
+                {projectGeometry.facades.map((facade) => (
+                  <div className="facade-metric-card" key={facade.facadeId}>
+                    <strong>{facade.facadeName}</strong>
+                    <span>Брутто: {formatArea(facade.grossAreaM2)} м²</span>
+                    <span>Проемы: {formatArea(facade.openingAreaM2)} м²</span>
+                    <span>Нетто: {formatArea(facade.netAreaM2)} м²</span>
+                    <span>Проемов: {formatInteger(facade.openingCount)}</span>
+                    <span>
+                      Углы: {formatInteger(facade.outsideCorners)} наруж.,{' '}
+                      {formatInteger(facade.insideCorners)} внутр.
+                    </span>
+                  </div>
+                ))}
+              </div>
             </article>
           </div>
+        </section>
+
+        <section className="section">
+          <div className="section-heading">
+            <span className="section-kicker">Следующее</span>
+            <h2>Что будем считать дальше</h2>
+          </div>
+          <article className="card">
+            <ol className="numbered-list">
+              <li>Реализовать раскладку кассет КФ-1...КФ-4 на полезную площадь фасада.</li>
+              <li>Добавить расчет подсистемы по выбранной схеме.</li>
+              <li>Подключить утеплитель, мембрану, саморезы и заклепки.</li>
+              <li>Связать расчетные позиции с Excel-прайсом.</li>
+            </ol>
+          </article>
         </section>
       </main>
     </div>
