@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { facadeCassetteTypes } from './entities/catalog/facade-cassette-types'
 import { cassetteCodeToFamily, cassettePriceCatalog } from './entities/catalog/cassette-price-catalog'
 import type { Facade, Opening, OpeningType, Project } from './entities/project/types'
@@ -71,6 +71,38 @@ type CatalogItemWithPrice = {
   code: string | null
   name: string
   price: number | null
+}
+
+interface HelpModalProps {
+  title: string
+  subtitle: string
+  onClose: () => void
+  children: ReactNode
+}
+
+function HelpModal({ title, subtitle, onClose, children }: HelpModalProps) {
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <div
+        className="modal-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="help-modal-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="modal-head">
+          <div>
+            <div className="section-title" id="help-modal-title">{title}</div>
+            <div className="section-sub">{subtitle}</div>
+          </div>
+          <button className="btn btn-quiet" type="button" onClick={onClose}>
+            Закрыть
+          </button>
+        </div>
+        <div className="help-content">{children}</div>
+      </div>
+    </div>
+  )
 }
 
 interface StoredUploadedPriceFile {
@@ -1268,9 +1300,14 @@ export default function App() {
   const [cassetteCoating, setCassetteCoating] = useState<'polyester' | 'colorflow'>('colorflow')
   const [standardSelectionMode, setStandardSelectionMode] = useState<'none' | 'length' | 'height'>('length')
   const [subsystemBracketStepMm, setSubsystemBracketStepMm] = useState(defaultSubsystemBracketVerticalStepMm)
+  const [facadesHelpOpen, setFacadesHelpOpen] = useState(false)
+  const [cornersHelpOpen, setCornersHelpOpen] = useState(false)
   const [subsystemTypeHelpOpen, setSubsystemTypeHelpOpen] = useState(false)
-  const [singleLevelHelpOpen, setSingleLevelHelpOpen] = useState(false)
-  const [doubleLevelHelpOpen, setDoubleLevelHelpOpen] = useState(false)
+  const [pLevelsHelpOpen, setPLevelsHelpOpen] = useState(false)
+  const [cassettesHelpOpen, setCassettesHelpOpen] = useState(false)
+  const [insulationHelpOpen, setInsulationHelpOpen] = useState(false)
+  const [specHelpOpen, setSpecHelpOpen] = useState(false)
+  const [pendingCostsHelpOpen, setPendingCostsHelpOpen] = useState(false)
   const uploadedPriceIndex = useMemo(
     () => buildUploadedPriceIndex(uploadedPrice?.rows ?? []),
     [uploadedPrice],
@@ -2374,8 +2411,7 @@ export default function App() {
     setCassetteCoating('colorflow')
     setStandardSelectionMode('none')
     setSubsystemBracketStepMm(defaultSubsystemBracketVerticalStepMm)
-    setSingleLevelHelpOpen(false)
-    setDoubleLevelHelpOpen(false)
+    setPLevelsHelpOpen(false)
   }
 
   function updateCassetteType(code: Project['selectedCassetteType']) {
@@ -2674,7 +2710,14 @@ export default function App() {
 
       <section className="section">
         <div className="section-head">
-          <div className="section-title">Фасады</div>
+          <div>
+            <div className="section-title-line">
+              <div className="section-title">Фасады</div>
+              <button className="field-help field-help-header" type="button" onClick={() => setFacadesHelpOpen(true)} aria-label="Справка по фасадам">
+                ?
+              </button>
+            </div>
+          </div>
           <div className="section-sub">Добавьте фасады и задайте размеры. Для одинаковых фасадов используйте количество.</div>
         </div>
 
@@ -2858,7 +2901,14 @@ export default function App() {
 
       <section className="section">
         <div className="section-head">
-          <div className="section-title">Углы</div>
+          <div>
+            <div className="section-title-line">
+              <div className="section-title">Углы</div>
+              <button className="field-help field-help-header" type="button" onClick={() => setCornersHelpOpen(true)} aria-label="Справка по углам">
+                ?
+              </button>
+            </div>
+          </div>
           <div className="section-sub">Высота углов подставляется по самому высокому фасаду, но ее можно изменить вручную.</div>
         </div>
 
@@ -2925,7 +2975,14 @@ export default function App() {
 
       <section className="section">
         <div className="section-head">
-          <div className="section-title">Подсистема</div>
+          <div>
+            <div className="section-title-line">
+              <div className="section-title">Подсистема</div>
+              <button className="field-help field-help-header" type="button" onClick={() => setSubsystemTypeHelpOpen(true)} aria-label="Справка по подсистеме">
+                ?
+              </button>
+            </div>
+          </div>
           <div className="section-sub">Выберите тип подсистемы. Для П-образной подсистемы дополнительно укажите количество уровней.</div>
         </div>
 
@@ -2967,6 +3024,14 @@ export default function App() {
           <div className="corner-card" style={{ opacity: project.subsystem.code === 'standard_g' ? 0.55 : 1 }}>
             <div className="corner-head">
               <div className="corner-title">Уровни подсистемы</div>
+              <button
+                className="field-help field-help-header"
+                type="button"
+                onClick={() => setPLevelsHelpOpen(true)}
+                aria-label="Справка по уровням П-образной подсистемы"
+              >
+                ?
+              </button>
             </div>
             <div className="corner-body">
               <div className="choice-row">
@@ -2976,20 +3041,7 @@ export default function App() {
                   role="button"
                   tabIndex={0}
                 >
-                  <div className="choice-name">
-                    Одноуровневая
-                    <button
-                      className="field-help"
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        setSingleLevelHelpOpen(true)
-                      }}
-                      aria-label="Справка по одноуровневой П-образной системе"
-                    >
-                      ?
-                    </button>
-                  </div>
+                  <div className="choice-name">Одноуровневая</div>
                 </div>
                 <div
                   className={`choice ${project.subsystem.code === 'standard_p_double_level' ? 'active' : ''}`}
@@ -2997,20 +3049,7 @@ export default function App() {
                   role="button"
                   tabIndex={0}
                 >
-                  <div className="choice-name">
-                    Двухуровневая
-                    <button
-                      className="field-help"
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        setDoubleLevelHelpOpen(true)
-                      }}
-                      aria-label="Справка по двухуровневой П-образной системе"
-                    >
-                      ?
-                    </button>
-                  </div>
+                  <div className="choice-name">Двухуровневая</div>
                 </div>
               </div>
             </div>
@@ -3182,7 +3221,14 @@ export default function App() {
 
       <section className="section">
         <div className="section-head">
-          <div className="section-title">Кассеты</div>
+          <div>
+            <div className="section-title-line">
+              <div className="section-title">Кассеты</div>
+              <button className="field-help field-help-header" type="button" onClick={() => setCassettesHelpOpen(true)} aria-label="Справка по кассетам">
+                ?
+              </button>
+            </div>
+          </div>
           <div className="section-sub">Параметры выбранного типа кассеты и раскладки.</div>
         </div>
 
@@ -3479,7 +3525,14 @@ export default function App() {
 
       <section className="section">
         <div className="section-head">
-          <div className="section-title">Утеплитель и пленки</div>
+          <div>
+            <div className="section-title-line">
+              <div className="section-title">Утеплитель и пленки</div>
+              <button className="field-help field-help-header" type="button" onClick={() => setInsulationHelpOpen(true)} aria-label="Справка по утеплителю и пленкам">
+                ?
+              </button>
+            </div>
+          </div>
           <div className="section-sub">Базовые параметры утепления и ветрозащитной мембраны.</div>
         </div>
 
@@ -3597,7 +3650,14 @@ export default function App() {
 
       <section className="section">
         <div className="section-head">
-          <div className="section-title">Сводная спецификация</div>
+          <div>
+            <div className="section-title-line">
+              <div className="section-title">Сводная спецификация</div>
+              <button className="field-help field-help-header" type="button" onClick={() => setSpecHelpOpen(true)} aria-label="Справка по сводной спецификации">
+                ?
+              </button>
+            </div>
+          </div>
           <div className="section-sub">Кассеты, подсистема, комплектующие, утеплитель и пленки в одной итоговой таблице.</div>
         </div>
 
@@ -3800,7 +3860,14 @@ export default function App() {
 
       <section className="section pending-costs-section">
         <div className="section-head">
-          <div className="section-title">Дополнительные расчеты</div>
+          <div>
+            <div className="section-title-line">
+              <div className="section-title">Дополнительные расчеты</div>
+              <button className="field-help field-help-header" type="button" onClick={() => setPendingCostsHelpOpen(true)} aria-label="Справка по дополнительным расчетам">
+                ?
+              </button>
+            </div>
+          </div>
           <div className="section-sub">Проектирование, монтажная схема и упаковка будут рассчитаны после утверждения алгоритмов.</div>
         </div>
 
@@ -3832,135 +3899,94 @@ export default function App() {
         </button>
       </section>
 
+      {facadesHelpOpen ? (
+        <HelpModal title="Фасады" subtitle="Что менеджеру уточнить у клиента перед расчетом." onClose={() => setFacadesHelpOpen(false)}>
+          <h3>Как объяснить клиенту</h3>
+          <p>Фасад в калькуляторе — это отдельная плоскость здания: например лицевая сторона, торец или одинаковая секция. Для каждой плоскости задаются ширина, высота и количество повторов.</p>
+          <h3>Что уточнить</h3>
+          <p>Нужны размеры в миллиметрах, количество одинаковых фасадов и наличие окон или дверей. Если есть проемы, их размеры важно внести отдельно: они уменьшают площадь кассет и добавляют обрамление.</p>
+          <h3>Фраза для клиента</h3>
+          <p>«Чтобы расчет был ближе к реальности, мне нужны размеры каждой стороны фасада и отдельно окна/двери. Одинаковые участки можно указать количеством, это ускорит расчет».</p>
+        </HelpModal>
+      ) : null}
+
+      {cornersHelpOpen ? (
+        <HelpModal title="Углы" subtitle="Как объяснить оформление наружных и внутренних углов." onClose={() => setCornersHelpOpen(false)}>
+          <h3>Что это значит</h3>
+          <p>Углы — это места стыка фасадных плоскостей. Их можно оформить угловой кассетой или отдельным уголком. Высота углов обычно равна высоте самого высокого фасада, но ее можно изменить вручную.</p>
+          <h3>Что сказать клиенту</h3>
+          <p>Угловая кассета выглядит цельнее и аккуратнее, но требует правильного учета полок и выноса подсистемы. Уголок проще и часто дешевле, но визуально это отдельный фасонный элемент.</p>
+          <h3>Что уточнить</h3>
+          <p>Количество наружных и внутренних углов, желаемый внешний вид и есть ли требование делать угол без отдельного видимого уголка.</p>
+        </HelpModal>
+      ) : null}
+
       {subsystemTypeHelpOpen ? (
-        <div className="modal-backdrop" role="presentation" onClick={() => setSubsystemTypeHelpOpen(false)}>
-          <div
-            className="modal-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="subsystem-type-help-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="modal-head">
-              <div>
-                <div className="section-title" id="subsystem-type-help-title">Тип подсистемы</div>
-                <div className="section-sub">Короткая справка для ответа клиенту при выборе Г-образной или П-образной системы.</div>
-              </div>
-              <button className="btn btn-quiet" type="button" onClick={() => setSubsystemTypeHelpOpen(false)}>
-                Закрыть
-              </button>
-            </div>
-
-            <div className="help-content">
-              <h3>Что такое подсистема</h3>
-              <p>Подсистема — это несущий металлический каркас между стеной и фасадными кассетами. Она держит облицовку, формирует вентиляционный зазор, помогает выставить плоскость фасада и передает нагрузку на основание через кронштейны и анкеры.</p>
-
-              <h3>Г-образная система</h3>
-              <p>Г-образная подсистема обычно воспринимается как более простая и экономичная схема. Ее удобно предлагать для типовых фасадов, когда основание позволяет выставить плоскость без сложной регулировки. Клиенту можно объяснять так: «Это рациональный вариант каркаса для стандартного фасада без лишнего запаса по металлу».</p>
-
-              <h3>П-образная система</h3>
-              <p>П-образная подсистема дает больше жесткости и возможностей для раскладки направляющих. Она лучше подходит, когда фасад сложнее, есть требования к выносу, утеплению, крупным кассетам или более точной геометрии облицовки.</p>
-
-              <h3>Как выбрать в разговоре</h3>
-              <p>Если клиент просит «оптимально по цене» и фасад простой, начинаем с Г-образной или одноуровневой П-образной схемы. Если объект сложный, основание неровное, кассеты крупные или важна точная плоскость, объясняем пользу П-образной и двухуровневой системы.</p>
-
-              <h3>Что обязательно уточнить</h3>
-              <p>Материал стены, высоту фасада, утепление, примерную ровность основания, размеры кассет, наличие углов и проемов. Без этих данных менеджер может дать предварительный расчет, но окончательный выбор подсистемы лучше подтвердить после проверки объекта или проекта.</p>
-            </div>
-          </div>
-        </div>
+        <HelpModal title="Подсистема" subtitle="Короткая справка для ответа клиенту при выборе Г-образной или П-образной системы." onClose={() => setSubsystemTypeHelpOpen(false)}>
+          <h3>Что такое подсистема</h3>
+          <p>Подсистема — это несущий металлический каркас между стеной и фасадными кассетами. Она держит облицовку, формирует вентиляционный зазор, помогает выставить плоскость фасада и передает нагрузку на основание через кронштейны и анкеры.</p>
+          <h3>Г-образная система</h3>
+          <p>Г-образная подсистема обычно воспринимается как более простая и экономичная схема. Ее удобно предлагать для типовых фасадов, когда основание позволяет выставить плоскость без сложной регулировки.</p>
+          <h3>П-образная система</h3>
+          <p>П-образная подсистема дает больше жесткости и возможностей для раскладки направляющих. Она лучше подходит, когда фасад сложнее, есть требования к выносу, утеплению, крупным кассетам или более точной геометрии облицовки.</p>
+          <h3>Как выбрать в разговоре</h3>
+          <p>Если клиент просит «оптимально по цене» и фасад простой, начинаем с более рациональной схемы. Если объект сложный, основание неровное, кассеты крупные или важна точная плоскость, объясняем пользу П-образной и двухуровневой системы.</p>
+        </HelpModal>
       ) : null}
 
-      {singleLevelHelpOpen ? (
-        <div className="modal-backdrop" role="presentation" onClick={() => setSingleLevelHelpOpen(false)}>
-          <div
-            className="modal-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="single-level-help-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="modal-head">
-              <div>
-                <div className="section-title" id="single-level-help-title">П-образная одноуровневая система</div>
-                <div className="section-sub">Подсказка для менеджера: как объяснить систему клиенту простыми словами.</div>
-              </div>
-              <button className="btn btn-quiet" type="button" onClick={() => setSingleLevelHelpOpen(false)}>
-                Закрыть
-              </button>
-            </div>
-
-            <div className="help-content">
-              <h3>Как объяснить клиенту</h3>
-              <p>Одноуровневая П-образная подсистема — это более простая схема каркаса: кронштейны крепятся к стене, а к ним ставятся вертикальные направляющие. На эти направляющие уже монтируются фасадные кассеты.</p>
-
-              <h3>Когда предлагать</h3>
-              <p>Подходит для типовых ровных фасадов, где не требуется сложная регулировка плоскости и нет повышенных требований к выравниванию основания. Обычно это более рациональный вариант по количеству металла, срокам монтажа и стоимости.</p>
-
-              <h3>Преимущества для клиента</h3>
-              <p>Главные аргументы: меньше элементов в системе, проще монтаж, ниже риск ошибки на объекте, обычно ниже стоимость подсистемы. При этом сохраняется вентилируемый зазор и стандартная схема крепления кассет.</p>
-
-              <h3>Что уточнить у клиента</h3>
-              <p>Нужно понять материал стены, ровность основания, высоту здания, наличие утеплителя и требования к внешнему виду швов. Если основание заметно неровное или нужен большой вынос фасада, лучше проверить возможность двухуровневой системы.</p>
-
-              <h3>Что считает калькулятор</h3>
-              <p>В расчете используются КВП 200/250, вертикальная направляющая НПП 60x27x1,0, паронитовая прокладка, шайба усиления Ш50, анкеры/дюбели и заклепки. Шаг кронштейнов в калькуляторе ограничен максимумом 800 мм.</p>
-
-              <h3>Фраза для разговора</h3>
-              <p>«Для вашего фасада можно рассмотреть одноуровневую подсистему: это более простая и экономичная схема, если стена позволяет нормально выставить плоскость. Мы заложим стандартные крепления, направляющие и вентиляционный зазор, а итоговую применимость подтвердим по основанию и размерам фасада».</p>
-
-              <p className="hint" style={{ textAlign: 'left' }}>
-                Полная справка: Документация/md/p-shaped-single-level-subsystem-rules.md
-              </p>
-            </div>
-          </div>
-        </div>
+      {pLevelsHelpOpen ? (
+        <HelpModal title="Уровни П-образной подсистемы" subtitle="Единая справка по одноуровневой и двухуровневой П-образной системе." onClose={() => setPLevelsHelpOpen(false)}>
+          <h3>Одноуровневая</h3>
+          <p>Более простая схема: кронштейны крепятся к стене, к ним ставятся вертикальные направляющие, а на них монтируются кассеты. Обычно это рациональнее по стоимости и быстрее в монтаже для типовых ровных фасадов.</p>
+          <h3>Двухуровневая</h3>
+          <p>Более гибкая схема: сначала формируется первый уровень направляющих, затем второй уровень под раскладку кассет. Ее стоит предлагать при неровном основании, сложной геометрии, крупных кассетах и повышенных требованиях к плоскости.</p>
+          <h3>Как объяснить разницу клиенту</h3>
+          <p>«Одноуровневая система проще и обычно дешевле. Двухуровневая дороже из-за большего количества профилей, но дает больше регулировки и помогает аккуратнее вывести фасад на сложных объектах».</p>
+          <h3>Что считает калькулятор</h3>
+          <p>Для одноуровневой схемы считаются КВП, НПП, прокладки, шайбы, анкеры и заклепки. Для двухуровневой дополнительно учитываются горизонтальные/вертикальные профили и промежуточный НПШ для кассет длиной больше 800 мм.</p>
+        </HelpModal>
       ) : null}
 
-      {doubleLevelHelpOpen ? (
-        <div className="modal-backdrop" role="presentation" onClick={() => setDoubleLevelHelpOpen(false)}>
-          <div
-            className="modal-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="double-level-help-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="modal-head">
-              <div>
-                <div className="section-title" id="double-level-help-title">П-образная двухуровневая система</div>
-                <div className="section-sub">Подсказка для менеджера: как объяснить систему клиенту простыми словами.</div>
-              </div>
-              <button className="btn btn-quiet" type="button" onClick={() => setDoubleLevelHelpOpen(false)}>
-                Закрыть
-              </button>
-            </div>
+      {cassettesHelpOpen ? (
+        <HelpModal title="Кассеты" subtitle="Как менеджеру объяснить тип крепления, размер и раскладку." onClose={() => setCassettesHelpOpen(false)}>
+          <h3>Что выбираем</h3>
+          <p>В этом разделе выбирается тип кассет, толщина металла, покрытие и рабочий размер L/H. От этих параметров зависит цена, количество кассет и часть крепежа.</p>
+          <h3>Открытый и скрытый тип крепления</h3>
+          <p>Кассеты открытого типа крепления проще объяснять как вариант с видимым крепежом. Кассеты скрытого типа крепления дают более чистый внешний вид, потому что крепеж визуально меньше заметен.</p>
+          <h3>Что уточнить</h3>
+          <p>Желаемый внешний вид, направление раскладки, допустимые размеры кассет, цвет/покрытие и есть ли ограничения по стандартным размерам. Проемы в расчете вычитаются из площади кассет.</p>
+        </HelpModal>
+      ) : null}
 
-            <div className="help-content">
-              <h3>Как объяснить клиенту</h3>
-              <p>Двухуровневая П-образная подсистема — это усиленная и более гибкая схема каркаса. Сначала формируется первый уровень направляющих, затем второй уровень под раскладку кассет. За счет этого проще вывести ровную плоскость фасада и точнее подстроиться под геометрию здания.</p>
+      {insulationHelpOpen ? (
+        <HelpModal title="Утеплитель и пленки" subtitle="Как объяснить клиенту утепление, мембрану и влияние на расчет." onClose={() => setInsulationHelpOpen(false)}>
+          <h3>Если утеплитель есть</h3>
+          <p>Калькулятор учитывает толщину утеплителя, объем материала, крепеж утеплителя и ветрозащитную мембрану, если она включена. Толщина влияет на вынос подсистемы и подбор кронштейнов.</p>
+          <h3>Если утеплителя нет</h3>
+          <p>Расчет ведется как фасад без утепления: толщина утеплителя принимается равной нулю, а кронштейны и угловые выносы считаются только от вентзазора и профиля.</p>
+          <h3>Фраза для клиента</h3>
+          <p>«Утепление влияет не только на материал, но и на вынос фасада: чем толще утеплитель, тем больше нужен кронштейн и тем меняется состав подсистемы».</p>
+        </HelpModal>
+      ) : null}
 
-              <h3>Когда предлагать</h3>
-              <p>Рекомендуется, когда фасад сложный, основание неровное, требуется больше регулировки, есть большие кассеты или важно получить более контролируемую плоскость облицовки. Это также удобнее для объектов, где раскладка кассет требует дополнительных профилей.</p>
+      {specHelpOpen ? (
+        <HelpModal title="Сводная спецификация" subtitle="Как читать итоговую таблицу и объяснять ее клиенту." onClose={() => setSpecHelpOpen(false)}>
+          <h3>Что показывает таблица</h3>
+          <p>Сводная спецификация собирает в одном месте кассеты, подсистему, крепеж, комплектующие, утеплитель и пленки. Итоговая сумма и цена за квадратный метр считаются по заполненным позициям.</p>
+          <h3>Почему могут быть пустые цены</h3>
+          <p>Если по позиции нет цены или позиции нет в прайсе, калькулятор показывает прочерк. Это значит, что менеджеру нужно уточнить цену или загрузить актуальный прайс Excel.</p>
+          <h3>Что говорить клиенту</h3>
+          <p>«Это предварительная спецификация по введенным размерам. После проверки проекта, узлов и актуального прайса итоговая стоимость может быть уточнена».</p>
+        </HelpModal>
+      ) : null}
 
-              <h3>Преимущества для клиента</h3>
-              <p>Главные аргументы: лучше компенсирует неровности стены, дает больше возможностей для точной раскладки кассет, повышает управляемость монтажа на сложных фасадах. Минус честно проговариваем сразу: элементов больше, поэтому система обычно дороже одноуровневой.</p>
-
-              <h3>Что уточнить у клиента</h3>
-              <p>Нужно запросить размеры фасада, тип стены, перепады основания, наличие утеплителя, длину кассет и требования к швам. Если кассеты крупные или длина кассеты больше 800 мм, калькулятор добавляет промежуточный профиль.</p>
-
-              <h3>Что считает калькулятор</h3>
-              <p>В расчете используются КВП, вертикальные и горизонтальные НПП 60x27, основной НПШ 20x80x20 1,0, промежуточный НПШ 20x80x20 1,0 для крупных кассет, паронитовые прокладки, шайбы усиления, анкеры и заклепки. Шаги направляющих и кронштейнов ограничены максимумом 800 мм.</p>
-
-              <h3>Фраза для разговора</h3>
-              <p>«Если основание неровное или фасад сложный, лучше рассмотреть двухуровневую подсистему. Она дороже из-за большего количества профилей, но дает больше регулировки и помогает аккуратно вывести плоскость под кассеты».</p>
-
-              <p className="hint" style={{ textAlign: 'left' }}>
-                Полная справка пока зафиксирована в Документация/md/subsystem-types-rules.md и calculator-current-rules.md
-              </p>
-            </div>
-          </div>
-        </div>
+      {pendingCostsHelpOpen ? (
+        <HelpModal title="Дополнительные расчеты" subtitle="Что будет добавлено после утверждения алгоритмов." onClose={() => setPendingCostsHelpOpen(false)}>
+          <h3>Что здесь будет</h3>
+          <p>В этот блок будут добавлены стоимость проектирования, разработка монтажной схемы, количество и стоимость упаковки. Сейчас эти строки оставлены как напоминание, что коммерческое предложение не ограничивается только материалами.</p>
+          <h3>Как объяснить клиенту</h3>
+          <p>«Материалы уже считаются в спецификации. Проектирование, монтажная схема и упаковка будут добавлены отдельными строками, когда будут утверждены правила расчета».</p>
+        </HelpModal>
       ) : null}
     </div>
   )
