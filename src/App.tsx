@@ -13,6 +13,7 @@ import {
 
 const uploadedPriceStorageKey = 'insi-calculator-uploaded-price'
 const uploadedPriceFileStorageKey = 'insi-calculator-uploaded-price-file'
+const priceParserVersion = 2
 const cassetteThicknessOptions = [0.7, 1.0, 1.2] as const
 const defaultSubsystemBracketVerticalStepMm = 800
 const maxSubsystemBracketVerticalStepMm = 800
@@ -70,6 +71,7 @@ interface TrimPriceItem {
 type CatalogItemWithPrice = {
   code: string | null
   name: string
+  unit?: string | null
   price: number | null
 }
 
@@ -680,7 +682,15 @@ function countFastenersOnLine(lengthMm: number, stepMm: number) {
 function loadUploadedPriceData(): UploadedPriceData | null {
   try {
     const raw = localStorage.getItem(uploadedPriceStorageKey)
-    return raw ? (JSON.parse(raw) as UploadedPriceData) : null
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw) as UploadedPriceData
+    if (parsed.parserVersion !== priceParserVersion) {
+      localStorage.removeItem(uploadedPriceStorageKey)
+      return null
+    }
+
+    return parsed
   } catch {
     return null
   }
@@ -693,6 +703,21 @@ function saveUploadedPriceData(data: UploadedPriceData) {
 function clearUploadedPriceData() {
   localStorage.removeItem(uploadedPriceStorageKey)
   localStorage.removeItem(uploadedPriceFileStorageKey)
+}
+
+function normalizeComparablePriceUnit(unit: string | null | undefined) {
+  const normalized = String(unit ?? '').trim().toLowerCase().replace(/\s/g, '')
+  if (['m2', 'м2', 'м²'].includes(normalized)) return 'm2'
+  if (['pcs', 'шт'].includes(normalized)) return 'pcs'
+  if (['lm', 'пм', 'п.м', 'п.м.', 'мп', 'м.п.', 'м'].includes(normalized)) return 'lm'
+  if (['рул', 'рул.', 'рулон'].includes(normalized)) return 'roll'
+  return ''
+}
+
+function priceUnitsAreCompatible(uploadedUnit: string | null | undefined, catalogUnit: string | null | undefined) {
+  const uploaded = normalizeComparablePriceUnit(uploadedUnit)
+  const catalog = normalizeComparablePriceUnit(catalogUnit)
+  return !uploaded || !catalog || uploaded === catalog
 }
 
 function readFileAsDataUrl(file: File) {
@@ -1315,13 +1340,17 @@ export default function App() {
   const applyUploadedPrice = <T extends CatalogItemWithPrice>(item: T | null | undefined): T | null => {
     if (!item) return null
     const uploaded = uploadedPriceIndex.get(normalizePriceCode(item.code))
-    return uploaded ? { ...item, name: uploaded.name || item.name, price: uploaded.price } : item
+    return uploaded && priceUnitsAreCompatible(uploaded.unit, item.unit)
+      ? { ...item, name: uploaded.name || item.name, price: uploaded.price }
+      : item
   }
   const activeCassettePriceCatalog = useMemo(
     () =>
       cassettePriceCatalog.map((item) => {
         const uploaded = uploadedPriceIndex.get(normalizePriceCode(item.code))
-        return uploaded ? { ...item, name: uploaded.name || item.name, price: uploaded.price } : item
+        return uploaded && priceUnitsAreCompatible(uploaded.unit, item.unit)
+          ? { ...item, name: uploaded.name || item.name, price: uploaded.price }
+          : item
       }),
     [uploadedPriceIndex],
   )
@@ -2574,6 +2603,7 @@ export default function App() {
       const nextUploadedPrice: UploadedPriceData = {
         fileName: file.name,
         uploadedAt: new Date().toISOString(),
+        parserVersion: priceParserVersion,
         rows,
       }
 

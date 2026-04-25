@@ -12,6 +12,7 @@ export interface UploadedPriceRow {
 export interface UploadedPriceData {
   fileName: string
   uploadedAt: string
+  parserVersion?: number
   rows: UploadedPriceRow[]
 }
 
@@ -152,10 +153,22 @@ function parseRowByContent(cells: ParsedCell[]) {
 function detectHeaderMap(cells: ParsedCell[]): HeaderMap {
   return cells.reduce<HeaderMap>((acc, cell) => {
     const normalized = normalizeText(cell.text)
-    if (/(^|[^а-я])код([^а-я]|$)|артикул|номенклатур.*код/.test(normalized)) acc.code = cell.index
-    if (/наимен|номенклатур|товар|продукц/.test(normalized)) acc.name = cell.index
-    if (/ед.*изм|единиц|^ед$|^ед\.$/.test(normalized)) acc.unit = cell.index
-    if (/цен|прайс|стоим/.test(normalized)) acc.price = cell.index
+    if (acc.code === undefined && /(^|[^а-я])код([^а-я]|$)|артикул|номенклатур.*код/.test(normalized)) acc.code = cell.index
+    if (
+      acc.name === undefined &&
+      /наимен|номенклатур|товар|продукц/.test(normalized) &&
+      !/групп|код/.test(normalized)
+    ) {
+      acc.name = cell.index
+    }
+    if (acc.unit === undefined && /ед.*изм|единиц|^ед$|^ед\.$/.test(normalized)) acc.unit = cell.index
+    if (
+      acc.price === undefined &&
+      /цен|прайс|стоим/.test(normalized) &&
+      !/тонн|(^|[^а-я0-9])т([^а-я0-9]|$)|1\s*т|вес/.test(normalized)
+    ) {
+      acc.price = cell.index
+    }
     return acc
   }, {})
 }
