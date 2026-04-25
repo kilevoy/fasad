@@ -1268,6 +1268,7 @@ export default function App() {
   const [cassetteCoating, setCassetteCoating] = useState<'polyester' | 'colorflow'>('colorflow')
   const [standardSelectionMode, setStandardSelectionMode] = useState<'none' | 'length' | 'height'>('length')
   const [subsystemBracketStepMm, setSubsystemBracketStepMm] = useState(defaultSubsystemBracketVerticalStepMm)
+  const [subsystemTypeHelpOpen, setSubsystemTypeHelpOpen] = useState(false)
   const [singleLevelHelpOpen, setSingleLevelHelpOpen] = useState(false)
   const [doubleLevelHelpOpen, setDoubleLevelHelpOpen] = useState(false)
   const uploadedPriceIndex = useMemo(
@@ -2932,6 +2933,14 @@ export default function App() {
           <div className="corner-card">
             <div className="corner-head">
               <div className="corner-title">Тип подсистемы</div>
+              <button
+                className="field-help field-help-header"
+                type="button"
+                onClick={() => setSubsystemTypeHelpOpen(true)}
+                aria-label="Справка по типу подсистемы"
+              >
+                ?
+              </button>
             </div>
             <div className="corner-body">
               <div className="choice-row">
@@ -3822,6 +3831,45 @@ export default function App() {
           Открыть методику расчета
         </button>
       </section>
+
+      {subsystemTypeHelpOpen ? (
+        <div className="modal-backdrop" role="presentation" onClick={() => setSubsystemTypeHelpOpen(false)}>
+          <div
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="subsystem-type-help-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="modal-head">
+              <div>
+                <div className="section-title" id="subsystem-type-help-title">Тип подсистемы</div>
+                <div className="section-sub">Короткая справка для ответа клиенту при выборе Г-образной или П-образной системы.</div>
+              </div>
+              <button className="btn btn-quiet" type="button" onClick={() => setSubsystemTypeHelpOpen(false)}>
+                Закрыть
+              </button>
+            </div>
+
+            <div className="help-content">
+              <h3>Что такое подсистема</h3>
+              <p>Подсистема — это несущий металлический каркас между стеной и фасадными кассетами. Она держит облицовку, формирует вентиляционный зазор, помогает выставить плоскость фасада и передает нагрузку на основание через кронштейны и анкеры.</p>
+
+              <h3>Г-образная система</h3>
+              <p>Г-образная подсистема обычно воспринимается как более простая и экономичная схема. Ее удобно предлагать для типовых фасадов, когда основание позволяет выставить плоскость без сложной регулировки. Клиенту можно объяснять так: «Это рациональный вариант каркаса для стандартного фасада без лишнего запаса по металлу».</p>
+
+              <h3>П-образная система</h3>
+              <p>П-образная подсистема дает больше жесткости и возможностей для раскладки направляющих. Она лучше подходит, когда фасад сложнее, есть требования к выносу, утеплению, крупным кассетам или более точной геометрии облицовки.</p>
+
+              <h3>Как выбрать в разговоре</h3>
+              <p>Если клиент просит «оптимально по цене» и фасад простой, начинаем с Г-образной или одноуровневой П-образной схемы. Если объект сложный, основание неровное, кассеты крупные или важна точная плоскость, объясняем пользу П-образной и двухуровневой системы.</p>
+
+              <h3>Что обязательно уточнить</h3>
+              <p>Материал стены, высоту фасада, утепление, примерную ровность основания, размеры кассет, наличие углов и проемов. Без этих данных менеджер может дать предварительный расчет, но окончательный выбор подсистемы лучше подтвердить после проверки объекта или проекта.</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {singleLevelHelpOpen ? (
         <div className="modal-backdrop" role="presentation" onClick={() => setSingleLevelHelpOpen(false)}>
