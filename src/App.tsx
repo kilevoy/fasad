@@ -2509,7 +2509,7 @@ export default function App() {
     setCassetteSizeL('')
     setCassetteSizeH('')
     setCassetteCoating('colorflow')
-    setStandardSelectionMode('none')
+    setStandardSelectionMode('length')
     setSubsystemBracketStepMm(defaultSubsystemBracketVerticalStepMm)
     setPLevelsHelpOpen(false)
   }
