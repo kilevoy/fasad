@@ -963,6 +963,17 @@ function getCassetteRustMm(code: Project['selectedCassetteType']) {
   return 17
 }
 
+function getCassetteLayoutOverlap(code: Project['selectedCassetteType']) {
+  if (code === 'КФ-1') {
+    return {
+      horizontalMm: 15,
+      verticalMm: 25,
+    }
+  }
+
+  return null
+}
+
 function getCornerCassetteFamily(code: Project['selectedCassetteType']) {
   if (code === 'КФ-1') return 'УКФ1'
   if (code === 'КФ-2') return 'УКФ2'
@@ -978,17 +989,28 @@ function calculateCornerCassetteByFacade(
   cornerProjectionMm = 0,
   cornerMinMm = 200,
   cornerMaxMm = 700,
+  overlapMm = 0,
 ) {
   if (facadeWidthMm <= 0 || cassetteWidthMm <= 0) return null
 
   const effectiveCornerMinMm = cornerMinMm + cornerProjectionMm
   const effectiveCornerMaxMm = cornerMaxMm + cornerProjectionMm
+  const rowCassetteStepMm = overlapMm > 0 ? cassetteWidthMm - overlapMm : cassetteWidthMm + rustMm
 
-  const maxRowCassetteCount = Math.floor((facadeWidthMm - 2 * effectiveCornerMinMm - rustMm) / (cassetteWidthMm + rustMm))
+  if (rowCassetteStepMm <= 0) return null
+
+  const maxRowCassetteCount =
+    overlapMm > 0
+      ? Math.floor((facadeWidthMm - 2 * effectiveCornerMinMm) / rowCassetteStepMm)
+      : Math.floor((facadeWidthMm - 2 * effectiveCornerMinMm - rustMm) / rowCassetteStepMm)
 
   for (let rowCassetteCount = Math.max(0, maxRowCassetteCount); rowCassetteCount >= 0; rowCassetteCount -= 1) {
     const seamsCount = rowCassetteCount + 1
-    const cornerWidthMm = (facadeWidthMm - rowCassetteCount * cassetteWidthMm - seamsCount * rustMm) / 2
+    const rowCassettesWidthMm =
+      overlapMm > 0
+        ? rowCassetteCount * rowCassetteStepMm
+        : rowCassetteCount * cassetteWidthMm + seamsCount * rustMm
+    const cornerWidthMm = (facadeWidthMm - rowCassettesWidthMm) / 2
 
     if (cornerWidthMm >= effectiveCornerMinMm && cornerWidthMm <= effectiveCornerMaxMm) {
       return {
@@ -1007,9 +1029,37 @@ function calculateCassetteColumnsAlongLength(
   cassetteWidthMm: number,
   rustMm: number,
   minAdditionalWidthMm: number,
+  overlapMm = 0,
 ) {
   if (lengthMm <= 0 || cassetteWidthMm <= 0) {
     return { standardColumns: 0, additionalWidthMm: 0, totalColumns: 0 }
+  }
+
+  if (overlapMm > 0) {
+    const layoutStepMm = cassetteWidthMm - overlapMm
+
+    if (layoutStepMm <= 0) {
+      return { standardColumns: 0, additionalWidthMm: Math.round(lengthMm), totalColumns: 1 }
+    }
+
+    const maxStandardColumns = Math.max(0, Math.floor((lengthMm + rustMm) / layoutStepMm))
+
+    for (let standardColumns = maxStandardColumns; standardColumns >= 0; standardColumns -= 1) {
+      const coveredByStandardColumns = standardColumns > 0 ? standardColumns * layoutStepMm : 0
+      const remainingWithSeam = lengthMm - coveredByStandardColumns
+      const additionalWidthMm =
+        remainingWithSeam > rustMm ? Math.round(remainingWithSeam + overlapMm) : 0
+
+      if (additionalWidthMm === 0 || additionalWidthMm >= minAdditionalWidthMm) {
+        return {
+          standardColumns,
+          additionalWidthMm,
+          totalColumns: standardColumns + (additionalWidthMm > 0 ? 1 : 0),
+        }
+      }
+    }
+
+    return { standardColumns: 0, additionalWidthMm: Math.round(lengthMm), totalColumns: 1 }
   }
 
   const maxStandardColumns = Math.max(0, Math.floor((lengthMm + rustMm) / (cassetteWidthMm + rustMm)))
@@ -1033,9 +1083,29 @@ function calculateCassetteColumnsAlongLength(
   return { standardColumns: 0, additionalWidthMm: Math.round(lengthMm), totalColumns: 1 }
 }
 
-function calculateCassetteRowsAlongHeight(heightMm: number, cassetteHeightMm: number, rustMm: number) {
+function calculateCassetteRowsAlongHeight(heightMm: number, cassetteHeightMm: number, rustMm: number, overlapMm = 0) {
   if (!Number.isFinite(heightMm) || !Number.isFinite(cassetteHeightMm) || heightMm <= 0 || cassetteHeightMm <= 0) {
     return { standardRows: 0, additionalHeightMm: 0, totalRows: 0 }
+  }
+
+  if (overlapMm > 0) {
+    const layoutStepMm = cassetteHeightMm - overlapMm
+
+    if (layoutStepMm <= 0) {
+      return { standardRows: 0, additionalHeightMm: Math.round(heightMm), totalRows: 1 }
+    }
+
+    const standardRows = Math.max(0, Math.floor((heightMm + rustMm) / layoutStepMm))
+    const coveredByStandardRows = standardRows > 0 ? standardRows * layoutStepMm : 0
+    const remainingWithSeam = heightMm - coveredByStandardRows
+    const additionalHeightMm =
+      remainingWithSeam > rustMm ? Math.round(remainingWithSeam + overlapMm) : 0
+
+    return {
+      standardRows,
+      additionalHeightMm,
+      totalRows: standardRows + (additionalHeightMm > 0 ? 1 : 0),
+    }
   }
 
   const standardRows = Math.max(0, Math.floor((heightMm + rustMm) / (cassetteHeightMm + rustMm)))
@@ -1061,6 +1131,7 @@ function findEconomicalCassetteSize(
   cornerProjectionMm: number,
   standardByLength: boolean,
   standardByHeight: boolean,
+  overlap: ReturnType<typeof getCassetteLayoutOverlap>,
 ) {
   const candidateMap = new Map<string, { l: number; h: number; fittedHeight: boolean }>()
   const preferredL = Math.min(...standardRule.standardL)
@@ -1075,10 +1146,13 @@ function findEconomicalCassetteSize(
 
     if (!standardByHeight) {
       for (const facade of facades) {
-        const maxRows = Math.max(1, Math.ceil((facade.heightMm + rustMm) / (limits.h.min + rustMm)))
+        const minRowStepMm = overlap ? limits.h.min - overlap.verticalMm : limits.h.min + rustMm
+        const maxRows = Math.max(1, Math.ceil((facade.heightMm + rustMm) / minRowStepMm))
 
         for (let rows = 1; rows <= maxRows; rows += 1) {
-          const fittedHeight = Math.round((facade.heightMm - (rows - 1) * rustMm) / rows)
+          const fittedHeight = overlap
+            ? Math.round(facade.heightMm / rows + overlap.verticalMm)
+            : Math.round((facade.heightMm - (rows - 1) * rustMm) / rows)
 
           if (fittedHeight >= limits.h.min && fittedHeight <= limits.h.max) {
             candidateMap.set(`${l}-${fittedHeight}`, { l, h: fittedHeight, fittedHeight: true })
@@ -1100,12 +1174,12 @@ function findEconomicalCassetteSize(
 
       for (const facade of facades) {
         const cornerLayout = hasCornerCassettes
-          ? calculateCornerCassetteByFacade(facade.widthMm, l, rustMm, cornerProjectionMm)
+          ? calculateCornerCassetteByFacade(facade.widthMm, l, rustMm, cornerProjectionMm, 200, 700, overlap?.horizontalMm ?? 0)
           : null
         const columns = hasCornerCassettes
           ? (cornerLayout?.rowCassetteCount ?? Number.POSITIVE_INFINITY)
-          : calculateCassetteColumnsAlongLength(facade.widthMm, l, rustMm, limits.l.min).totalColumns
-        const heightLayout = calculateCassetteRowsAlongHeight(facade.heightMm, h, rustMm)
+          : calculateCassetteColumnsAlongLength(facade.widthMm, l, rustMm, limits.l.min, overlap?.horizontalMm ?? 0).totalColumns
+        const heightLayout = calculateCassetteRowsAlongHeight(facade.heightMm, h, rustMm, overlap?.verticalMm ?? 0)
 
         if (!Number.isFinite(columns)) {
           return { l, h, score: Number.POSITIVE_INFINITY, additionalPieces: Number.POSITIVE_INFINITY, additionalAreaM2: Number.POSITIVE_INFINITY }
@@ -1450,6 +1524,7 @@ export default function App() {
   const cassetteStandardRule = getCassetteStandardRule(project.selectedCassetteType)
   const availableCassetteThicknesses = getAvailableCassetteThicknesses(project.selectedCassetteType)
   const cassetteRustMm = getCassetteRustMm(project.selectedCassetteType)
+  const cassetteLayoutOverlap = getCassetteLayoutOverlap(project.selectedCassetteType)
   const economicalCassetteSize = findEconomicalCassetteSize(
     project.facades,
     project.hasCornerCassettes && hasOutsideCorners,
@@ -1459,6 +1534,7 @@ export default function App() {
     cornerSubsystemProjectionMm,
     standardSelectionMode === 'length',
     standardSelectionMode === 'height',
+    cassetteLayoutOverlap,
   )
   const cornerCassetteFamily = getCornerCassetteFamily(project.selectedCassetteType)
   const polyesterAvailable = project.cassetteThicknessMm === 0.7
@@ -1510,7 +1586,12 @@ export default function App() {
       item.thickness === project.cassetteThicknessMm &&
       item.coating === matchedCassetteCoating,
   )
-  const cornerHeightLayout = calculateCassetteRowsAlongHeight(cornerHeight, cassetteHValue, cassetteRustMm)
+  const cornerHeightLayout = calculateCassetteRowsAlongHeight(
+    cornerHeight,
+    cassetteHValue,
+    cassetteRustMm,
+    cassetteLayoutOverlap?.verticalMm ?? 0,
+  )
   const cornerCassettePerCornerCount = cornerHeightLayout.totalRows
   const totalCornerCassetteCount = project.hasCornerCassettes && hasOutsideCorners ? project.outsideCorners * cornerCassettePerCornerCount : 0
   const matchedCornerCassettePriceItem = project.hasCornerCassettes && hasOutsideCorners
@@ -1537,6 +1618,9 @@ export default function App() {
             cassetteLValue,
             cassetteRustMm,
             cornerSubsystemProjectionMm,
+            200,
+            700,
+            cassetteLayoutOverlap?.horizontalMm ?? 0,
           ),
         }))
       : []
@@ -1548,7 +1632,15 @@ export default function App() {
       ? project.facades.map((facade) => {
           const cornerLengthLayout =
             project.hasCornerCassettes && hasOutsideCorners
-              ? calculateCornerCassetteByFacade(facade.widthMm, cassetteLValue, cassetteRustMm, cornerSubsystemProjectionMm)
+              ? calculateCornerCassetteByFacade(
+                  facade.widthMm,
+                  cassetteLValue,
+                  cassetteRustMm,
+                  cornerSubsystemProjectionMm,
+                  200,
+                  700,
+                  cassetteLayoutOverlap?.horizontalMm ?? 0,
+                )
               : null
           const lengthLayout =
             project.hasCornerCassettes && hasOutsideCorners
@@ -1562,9 +1654,15 @@ export default function App() {
                   cassetteLValue,
                   cassetteRustMm,
                   cassetteNumericLimits.l.min,
+                  cassetteLayoutOverlap?.horizontalMm ?? 0,
                 )
           const columns = lengthLayout.totalColumns
-          const heightLayout = calculateCassetteRowsAlongHeight(facade.heightMm, cassetteHValue, cassetteRustMm)
+          const heightLayout = calculateCassetteRowsAlongHeight(
+            facade.heightMm,
+            cassetteHValue,
+            cassetteRustMm,
+            cassetteLayoutOverlap?.verticalMm ?? 0,
+          )
           const perFacadePieces = lengthLayout.totalColumns * heightLayout.totalRows
           const totalPieces = perFacadePieces * facade.quantity
           const cassetteAreaM2 = (cassetteLValue * cassetteHValue) / 1_000_000
