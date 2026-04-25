@@ -3,37 +3,35 @@ import type { Project } from '../../../entities/project/types'
 export function createDemoProject(): Project {
   return {
     id: 'demo-project',
-    name: 'Демо-объект: административный фасад',
+    name: 'Административный корпус',
+    city: 'Екатеринбург',
     description:
-      'Тестовая структура для будущего калькулятора. На ней удобно проверять геометрию, раскладку кассет, утепление и итоговую спецификацию.',
+      'Базовый сценарий для проектирования фасадных кассет, подсистемы, утеплителя и крепежа.',
+    estimateMode: 'project',
+    outsideCorners: 0,
+    insideCorners: 0,
     selectedCassetteType: 'КФ-2',
+    cassetteThicknessMm: 1.2,
+    layoutMode: 'horizontal',
+    hasCornerCassettes: true,
+    subsystem: {
+      code: 'standard_g',
+      visibleGuideColor: true,
+      airGapMm: 40,
+    },
     facades: [
       {
         id: 'facade-a',
         name: 'Фасад А',
-        widthMm: 24000,
-        heightMm: 9600,
-        outsideCorners: 2,
-        insideCorners: 0,
-        openings: [
-          {
-            id: 'opening-a1',
-            type: 'window',
-            widthMm: 1800,
-            heightMm: 1500,
-            quantity: 6,
-          },
-          {
-            id: 'opening-a2',
-            type: 'door',
-            widthMm: 1200,
-            heightMm: 2400,
-            quantity: 2,
-          },
-        ],
+        quantity: 1,
+        widthMm: 12000,
+        heightMm: 6500,
+        hasOpenings: false,
+        openings: [],
       },
     ],
     insulation: {
+      enabled: true,
       layers: 2,
       thicknessMm: 150,
       membrane: true,

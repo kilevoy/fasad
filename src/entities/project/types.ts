@@ -1,4 +1,12 @@
-export type CassetteCode = 'КФ-1' | 'КФ-2' | 'КФ-3' | 'КФ-4'
+export type CassetteCode = 'КФ-1' | 'КФ-2' | 'КФ-3' | 'КФ-4 (30)' | 'КФ-4 (17)'
+export type CassetteLayoutMode = 'horizontal' | 'vertical' | 'square'
+export type EstimateMode = 'project' | 'mounting'
+
+export type SubsystemCode =
+  | 'standard_p_vertical'
+  | 'standard_p_double_level'
+  | 'standard_g'
+  | 'frame'
 
 export type OpeningType = 'window' | 'door'
 
@@ -13,24 +21,39 @@ export interface Opening {
 export interface Facade {
   id: string
   name: string
+  quantity: number
   widthMm: number
   heightMm: number
-  outsideCorners: number
-  insideCorners: number
+  hasOpenings: boolean
   openings: Opening[]
 }
 
 export interface InsulationSetup {
+  enabled: boolean
   layers: 1 | 2
   thicknessMm: number
   membrane: boolean
 }
 
+export interface SubsystemSetup {
+  code: SubsystemCode
+  visibleGuideColor: boolean
+  airGapMm: number
+}
+
 export interface Project {
   id: string
   name: string
+  city: string
   description: string
+  estimateMode: EstimateMode
+  outsideCorners: number
+  insideCorners: number
   selectedCassetteType: CassetteCode
+  cassetteThicknessMm: number
+  layoutMode: CassetteLayoutMode
+  hasCornerCassettes: boolean
+  subsystem: SubsystemSetup
   facades: Facade[]
   insulation: InsulationSetup
 }

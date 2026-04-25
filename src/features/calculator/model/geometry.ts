@@ -8,6 +8,7 @@ export interface OpeningMetrics {
 export interface FacadeMetrics {
   facadeId: string
   facadeName: string
+  facadeQuantity: number
   grossAreaM2: number
   openingAreaM2: number
   netAreaM2: number
@@ -50,19 +51,22 @@ function calculateOpeningMetrics(openings: Opening[]): OpeningMetrics {
 }
 
 function calculateFacadeMetrics(facade: Facade): FacadeMetrics {
-  const grossAreaM2 = areaMm2ToM2(facade.widthMm * facade.heightMm)
+  const grossAreaM2 = areaMm2ToM2(facade.widthMm * facade.heightMm) * facade.quantity
   const openingMetrics = calculateOpeningMetrics(facade.openings)
-  const netAreaM2 = Math.max(grossAreaM2 - openingMetrics.totalAreaM2, 0)
+  const openingAreaM2 = openingMetrics.totalAreaM2 * facade.quantity
+  const openingCount = openingMetrics.totalCount * facade.quantity
+  const netAreaM2 = Math.max(grossAreaM2 - openingAreaM2, 0)
 
   return {
     facadeId: facade.id,
     facadeName: facade.name,
+    facadeQuantity: facade.quantity,
     grossAreaM2,
-    openingAreaM2: openingMetrics.totalAreaM2,
+    openingAreaM2,
     netAreaM2,
-    openingCount: openingMetrics.totalCount,
-    outsideCorners: facade.outsideCorners,
-    insideCorners: facade.insideCorners,
+    openingCount,
+    outsideCorners: 0,
+    insideCorners: 0,
   }
 }
 
@@ -76,8 +80,6 @@ export function calculateProjectGeometry(project: Project): ProjectGeometryMetri
       accumulator.totalOpeningAreaM2 += facade.openingAreaM2
       accumulator.totalNetAreaM2 += facade.netAreaM2
       accumulator.totalOpeningCount += facade.openingCount
-      accumulator.totalOutsideCorners += facade.outsideCorners
-      accumulator.totalInsideCorners += facade.insideCorners
       accumulator.facades.push(facade)
 
       return accumulator
@@ -88,8 +90,8 @@ export function calculateProjectGeometry(project: Project): ProjectGeometryMetri
       totalOpeningAreaM2: 0,
       totalNetAreaM2: 0,
       totalOpeningCount: 0,
-      totalOutsideCorners: 0,
-      totalInsideCorners: 0,
+      totalOutsideCorners: project.outsideCorners,
+      totalInsideCorners: project.insideCorners,
       facades: [] as FacadeMetrics[],
     },
   )
