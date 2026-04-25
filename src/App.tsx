@@ -3771,8 +3771,8 @@ export default function App() {
           <div className="section-sub">Кассеты, подсистема, комплектующие, утеплитель и пленки в одной итоговой таблице.</div>
         </div>
 
-        <div className="cassette-spec-table-wrap">
-          <table className="cassette-spec-table">
+        <div className="cassette-spec-table-wrap summary-spec-table-wrap">
+          <table className="cassette-spec-table summary-spec-table">
             <colgroup>
               <col className="spec-col-section" />
               <col className="spec-col-element" />

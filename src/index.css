@@ -1454,6 +1454,10 @@ textarea.input:focus {
     grid-template-columns: 1fr;
   }
 
+  .theme-mono .calc-hero__main {
+    grid-template-columns: 1fr;
+  }
+
   .calc-hero__rail {
     display: none;
   }
@@ -1481,11 +1485,34 @@ textarea.input:focus {
   }
 
   .calc-hero__total {
-    padding: 14px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    align-items: baseline;
+    padding: 13px 14px;
+    border-radius: 14px;
+  }
+
+  .calc-hero__total-label {
+    grid-column: 1 / -1;
+    font-size: 10px;
+    letter-spacing: 0.08em;
   }
 
   .calc-hero__total-value {
-    font-size: 26px;
+    margin: 0;
+    font-size: clamp(22px, 7vw, 28px);
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .calc-hero__total-sub {
+    justify-self: end;
+    font-size: clamp(13px, 4vw, 16px);
+    line-height: 1;
+    color: #fff7d5;
+    text-align: right;
+    white-space: nowrap;
   }
 
   .section {
@@ -1540,9 +1567,155 @@ textarea.input:focus {
     width: 100%;
   }
 
-  .cassette-spec-table th,
-  .cassette-spec-table td {
-    padding: 10px 11px;
+  .summary-spec-table-wrap {
+    overflow-x: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .summary-spec-table,
+  .summary-spec-table tbody,
+  .summary-spec-table tr,
+  .summary-spec-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .summary-spec-table colgroup,
+  .summary-spec-table thead {
+    display: none;
+  }
+
+  .summary-spec-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: auto;
+    font-size: 13px;
+  }
+
+  .summary-spec-table tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .summary-spec-table tr {
+    border: 2px solid #111;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 5px 5px 0 rgba(17, 17, 17, 0.1);
+  }
+
+  .summary-spec-table td {
+    display: grid;
+    grid-template-columns: minmax(96px, 0.38fr) minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    padding: 9px 10px;
+    border-top: 1px solid #e4e4e4;
+    background: #fff;
+    text-align: left !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    font-family: inherit !important;
+  }
+
+  .summary-spec-table td:first-child {
+    border-top: 0;
+  }
+
+  .summary-spec-table td::before {
+    content: "";
+    color: #686868;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .summary-spec-table td:nth-child(1)::before {
+    content: "Раздел";
+  }
+
+  .summary-spec-table td:nth-child(2)::before {
+    content: "Элемент";
+  }
+
+  .summary-spec-table td:nth-child(3)::before {
+    content: "Наименование";
+  }
+
+  .summary-spec-table td:nth-child(4)::before {
+    content: "Кол-во";
+  }
+
+  .summary-spec-table td:nth-child(5)::before {
+    content: "Ед.";
+  }
+
+  .summary-spec-table td:nth-child(6)::before {
+    content: "Цена";
+  }
+
+  .summary-spec-table td:nth-child(7)::before {
+    content: "Сумма";
+  }
+
+  .summary-spec-table .spec-section-row {
+    box-shadow: none;
+  }
+
+  .summary-spec-table .spec-section-row td,
+  .theme-mono .summary-spec-table .spec-section-row td {
+    display: block;
+    padding: 10px 12px;
+    background: #111;
+    color: #fff;
+    border-top: 0;
+    font-size: 12px;
+  }
+
+  .summary-spec-table .spec-section-row td::before {
+    content: none;
+  }
+
+  .summary-spec-table .spec-total-row td,
+  .theme-mono .summary-spec-table .spec-total-row td {
+    background: #f7f7f7;
+    font-weight: 900;
+  }
+
+  .summary-spec-table tbody > tr:last-child,
+  .theme-mono .summary-spec-table tbody > tr:last-child {
+    background: #111;
+    box-shadow: 6px 6px 0 rgba(17, 17, 17, 0.16);
+  }
+
+  .summary-spec-table tbody > tr:last-child td,
+  .theme-mono .summary-spec-table tbody > tr:last-child td {
+    grid-template-columns: 1fr;
+    background: #111;
+    color: #fff;
+    border-top-color: #333;
+    font-size: 16px;
+    white-space: normal !important;
+  }
+
+  .summary-spec-table tbody > tr:last-child td::before {
+    color: #cfcfcf;
+  }
+
+  .summary-spec-table tbody > tr:last-child td:nth-child(6),
+  .summary-spec-table tbody > tr:last-child td:nth-child(7),
+  .theme-mono .summary-spec-table tbody > tr:last-child td:nth-child(6),
+  .theme-mono .summary-spec-table tbody > tr:last-child td:nth-child(7) {
+    color: #fff;
+    font-size: 18px;
+  }
+
+  .cassette-spec-notes {
+    margin-top: 16px;
   }
 }
 
