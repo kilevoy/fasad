@@ -1367,6 +1367,12 @@ textarea.input:focus {
     font-size: 38px;
   }
 
+  .theme-mono .calc-hero h1 {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 0.98;
+  }
+
   .section {
     padding: 18px;
   }
@@ -1441,6 +1447,32 @@ textarea.input:focus {
 
   .calc-hero h1 {
     font-size: 31px;
+  }
+
+  .theme-mono .calc-hero h1 {
+    max-width: 100%;
+    font-size: clamp(27px, 8.4vw, 34px);
+    line-height: 1;
+    letter-spacing: -0.018em;
+  }
+
+  .calc-kicker {
+    width: auto;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
+  .calc-hero__meta span {
+    width: 100%;
+    border-radius: 12px;
+  }
+
+  .calc-hero__total {
+    padding: 14px;
+  }
+
+  .calc-hero__total-value {
+    font-size: 26px;
   }
 
   .section {
