@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { facadeCassetteTypes } from './entities/catalog/facade-cassette-types'
 import { cassetteCodeToFamily, cassettePriceCatalog } from './entities/catalog/cassette-price-catalog'
 import type { Facade, Opening, OpeningType, Project } from './entities/project/types'
@@ -14,6 +14,7 @@ import {
 const uploadedPriceStorageKey = 'insi-calculator-uploaded-price'
 const uploadedPriceFileStorageKey = 'insi-calculator-uploaded-price-file'
 const priceParserVersion = 2
+const sharedPriceUrl = './price.json'
 const cassetteThicknessOptions = [0.7, 1.0, 1.2] as const
 const defaultSubsystemBracketVerticalStepMm = 800
 const maxSubsystemBracketVerticalStepMm = 800
@@ -696,6 +697,38 @@ function loadUploadedPriceData(): UploadedPriceData | null {
   }
 }
 
+function parseSharedPriceData(value: unknown): UploadedPriceData | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = value as Partial<UploadedPriceData>
+  if (raw.parserVersion !== priceParserVersion || !Array.isArray(raw.rows)) return null
+
+  const rows = raw.rows
+    .map((row, index) => {
+      if (!row || typeof row !== 'object') return null
+      const current = row as Partial<UploadedPriceData['rows'][number]>
+      const price = Number(current.price)
+      const name = typeof current.name === 'string' ? current.name.trim() : ''
+      if (!name || !Number.isFinite(price) || price <= 0) return null
+
+      return {
+        code: current.code === null || current.code === undefined ? null : String(current.code),
+        name,
+        unit: current.unit === null || current.unit === undefined ? null : String(current.unit),
+        price,
+        sheet: typeof current.sheet === 'string' ? current.sheet : 'price.json',
+        rowNumber: typeof current.rowNumber === 'number' ? current.rowNumber : index + 1,
+      }
+    })
+    .filter((row): row is UploadedPriceData['rows'][number] => row !== null)
+
+  return {
+    fileName: typeof raw.fileName === 'string' ? raw.fileName : 'price.json',
+    uploadedAt: typeof raw.uploadedAt === 'string' ? raw.uploadedAt : new Date().toISOString(),
+    parserVersion: raw.parserVersion,
+    rows,
+  }
+}
+
 function saveUploadedPriceData(data: UploadedPriceData) {
   localStorage.setItem(uploadedPriceStorageKey, JSON.stringify(data))
 }
@@ -1316,6 +1349,8 @@ function EngineeringMethodologyPage({ onBack }: { onBack: () => void }) {
 export default function App() {
   const [project, setProject] = useState<Project>(() => createDemoProject())
   const [uploadedPrice, setUploadedPrice] = useState<UploadedPriceData | null>(() => loadUploadedPriceData())
+  const [sharedPrice, setSharedPrice] = useState<UploadedPriceData | null>(null)
+  const [sharedPriceStatus, setSharedPriceStatus] = useState<'loading' | 'ready' | 'missing' | 'invalid'>('loading')
   const [priceUploadMessage, setPriceUploadMessage] = useState('')
   const [methodologyOpen, setMethodologyOpen] = useState(false)
   const [cornerHeightMode, setCornerHeightMode] = useState<'auto' | 'manual'>('auto')
@@ -1333,9 +1368,11 @@ export default function App() {
   const [insulationHelpOpen, setInsulationHelpOpen] = useState(false)
   const [specHelpOpen, setSpecHelpOpen] = useState(false)
   const [pendingCostsHelpOpen, setPendingCostsHelpOpen] = useState(false)
+  const activePrice = uploadedPrice ?? sharedPrice
+  const activePriceSource = uploadedPrice ? 'local' : sharedPrice ? 'shared' : 'builtin'
   const uploadedPriceIndex = useMemo(
-    () => buildUploadedPriceIndex(uploadedPrice?.rows ?? []),
-    [uploadedPrice],
+    () => buildUploadedPriceIndex(activePrice?.rows ?? []),
+    [activePrice],
   )
   const applyUploadedPrice = <T extends CatalogItemWithPrice>(item: T | null | undefined): T | null => {
     if (!item) return null
@@ -1344,6 +1381,40 @@ export default function App() {
       ? { ...item, name: uploaded.name || item.name, price: uploaded.price }
       : item
   }
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadSharedPrice() {
+      try {
+        const response = await fetch(sharedPriceUrl, { cache: 'no-store' })
+        if (!response.ok) {
+          if (!cancelled) setSharedPriceStatus('missing')
+          return
+        }
+
+        const parsed = parseSharedPriceData(await response.json())
+        if (!cancelled) {
+          if (parsed) {
+            setSharedPrice(parsed)
+            setSharedPriceStatus('ready')
+          } else {
+            setSharedPrice(null)
+            setSharedPriceStatus('invalid')
+          }
+        }
+      } catch {
+        if (!cancelled) setSharedPriceStatus('missing')
+      }
+    }
+
+    void loadSharedPrice()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const activeCassettePriceCatalog = useMemo(
     () =>
       cassettePriceCatalog.map((item) => {
@@ -2619,7 +2690,12 @@ export default function App() {
     }
   }
 
-  function openUploadedPriceFile() {
+  function openActivePriceFile() {
+    if (!uploadedPrice && sharedPrice) {
+      window.open(sharedPriceUrl, '_blank', 'noreferrer')
+      return
+    }
+
     try {
       const raw = localStorage.getItem(uploadedPriceFileStorageKey)
       if (!raw) {
@@ -2642,7 +2718,7 @@ export default function App() {
   function resetUploadedPrice() {
     clearUploadedPriceData()
     setUploadedPrice(null)
-    setPriceUploadMessage('Загруженный прайс удален. Используются встроенные цены.')
+    setPriceUploadMessage(sharedPrice ? 'Локальный прайс удален. Используется общий прайс.' : 'Локальный прайс удален. Используются встроенные цены.')
   }
 
   if (methodologyOpen) {
@@ -2711,9 +2787,13 @@ export default function App() {
         <div>
           <div className="price-upload-title">Прайс Excel</div>
           <div className="price-upload-sub">
-            {uploadedPrice
-              ? `${uploadedPrice.fileName}, загружен ${formatUploadDate(uploadedPrice.uploadedAt)}, цен: ${formatInt(uploadedPrice.rows.length)}`
-              : 'Загрузите .xlsx/.xls. Колонки могут идти в любом порядке: код, наименование, цена и единица будут найдены автоматически.'}
+            {activePrice
+              ? `${activePriceSource === 'local' ? 'Локальный тестовый прайс' : 'Общий прайс'}: ${activePrice.fileName}, обновлен ${formatUploadDate(activePrice.uploadedAt)}, цен: ${formatInt(activePrice.rows.length)}`
+              : sharedPriceStatus === 'loading'
+                ? 'Загружаю общий прайс...'
+                : sharedPriceStatus === 'invalid'
+                  ? 'Общий price.json поврежден или создан старым парсером. Используются встроенные цены.'
+                  : 'Общий price.json не найден. Используются встроенные цены; Excel можно загрузить локально для проверки.'}
           </div>
           {priceUploadMessage ? <div className="price-upload-message">{priceUploadMessage}</div> : null}
         </div>
@@ -2729,11 +2809,11 @@ export default function App() {
               }}
             />
           </label>
-          <button className="btn btn-quiet" type="button" disabled={!uploadedPrice} onClick={openUploadedPriceFile}>
+          <button className="btn btn-quiet" type="button" disabled={!activePrice} onClick={openActivePriceFile}>
             Открыть прайс
           </button>
           <button className="btn btn-danger" type="button" disabled={!uploadedPrice} onClick={resetUploadedPrice}>
-            Сбросить прайс
+            Сбросить локальный
           </button>
         </form>
       </section>

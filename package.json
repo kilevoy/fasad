@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy:check": "npm run build"
+    "deploy:check": "npm run build",
+    "price:import": "node scripts/import-price.mjs"
   },
   "dependencies": {
     "react": "^19.2.5",
