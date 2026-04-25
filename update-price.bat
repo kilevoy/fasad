@@ -9,20 +9,37 @@ echo  Facade calculator price update
 echo ==========================================
 echo.
 
-set "DEFAULT_PRICE=%~dp0..\price.xlsx"
+set "DEFAULT_PRICE="
+if exist "%~dp0..\price.xlsx" set "DEFAULT_PRICE=%~dp0..\price.xlsx"
+if "%DEFAULT_PRICE%"=="" (
+  for %%F in ("%~dp0..\*.xlsx") do (
+    if "%DEFAULT_PRICE%"=="" set "DEFAULT_PRICE=%%~fF"
+  )
+)
 set "PRICE_FILE=%~1"
 
 if "%PRICE_FILE%"=="" (
   echo Enter path to Excel price file.
   echo You can drag and drop .xlsx file into this window and press Enter.
-  echo If empty, default file will be used:
-  echo %DEFAULT_PRICE%
+  if not "%DEFAULT_PRICE%"=="" (
+    echo If empty, default file will be used:
+    echo %DEFAULT_PRICE%
+  )
   echo.
   set /p "PRICE_FILE=Price file: "
 )
 
 if "%PRICE_FILE%"=="" set "PRICE_FILE=%DEFAULT_PRICE%"
 set "PRICE_FILE=%PRICE_FILE:"=%"
+
+if "%PRICE_FILE%"=="" (
+  echo.
+  echo ERROR: no default .xlsx file found near project folder.
+  echo Put price.xlsx or any .xlsx file into parent folder, or drag file into this window.
+  echo.
+  pause
+  exit /b 1
+)
 
 if not exist "%PRICE_FILE%" (
   echo.
