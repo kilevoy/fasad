@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { facadeCassetteTypes } from './entities/catalog/facade-cassette-types'
 import { cassetteCodeToFamily, cassettePriceCatalog } from './entities/catalog/cassette-price-catalog'
 import type { Facade, Opening, OpeningType, Project } from './entities/project/types'
@@ -45,6 +45,86 @@ const subsystemAnchorPriceItem = {
   code: null,
   name: 'Анкерный крепеж / фасадный дюбель для кронштейнов',
   price: null as number | null,
+}
+
+function createQuickTestProject(): Project {
+  return {
+    id: 'quick-test-project',
+    name: 'Тестовый расчет ИНСИ',
+    city: 'Екатеринбург',
+    description: 'Быстрое заполнение для проверки расчета КФ-1.',
+    estimateMode: 'project',
+    outsideCorners: 4,
+    insideCorners: 0,
+    selectedCassetteType: 'КФ-1',
+    cassetteThicknessMm: 1.0,
+    layoutMode: 'horizontal',
+    hasCornerCassettes: true,
+    subsystem: {
+      code: 'standard_p_vertical',
+      visibleGuideColor: true,
+      airGapMm: 40,
+    },
+    facades: [
+      {
+        id: 'quick-facade-a',
+        name: 'Фасад A',
+        quantity: 1,
+        widthMm: 15000,
+        heightMm: 6500,
+        hasOpenings: true,
+        openings: [
+          {
+            id: 'quick-facade-a-window',
+            type: 'window',
+            widthMm: 1510,
+            heightMm: 1210,
+            quantity: 3,
+          },
+          {
+            id: 'quick-facade-a-door',
+            type: 'door',
+            widthMm: 1170,
+            heightMm: 2071,
+            quantity: 1,
+          },
+        ],
+      },
+      {
+        id: 'quick-facade-b',
+        name: 'Фасад B',
+        quantity: 1,
+        widthMm: 15000,
+        heightMm: 6500,
+        hasOpenings: false,
+        openings: [],
+      },
+      {
+        id: 'quick-facade-c',
+        name: 'Фасад C',
+        quantity: 1,
+        widthMm: 12000,
+        heightMm: 6500,
+        hasOpenings: false,
+        openings: [],
+      },
+      {
+        id: 'quick-facade-d',
+        name: 'Фасад D',
+        quantity: 1,
+        widthMm: 12000,
+        heightMm: 6500,
+        hasOpenings: false,
+        openings: [],
+      },
+    ],
+    insulation: {
+      enabled: false,
+      layers: 1,
+      thicknessMm: 50,
+      membrane: false,
+    },
+  }
 }
 
 type PriceUnit = 'pcs' | 'lm' | 'm2'
@@ -613,14 +693,51 @@ function createOpeningId() {
   return `opening-${Math.random().toString(36).slice(2, 8)}`
 }
 
+const openingSizePresets: Record<OpeningType, Array<{ label: string; widthMm: number; heightMm: number }>> = {
+  window: [
+    { label: '610 × 910', widthMm: 910, heightMm: 610 },
+    { label: '910 × 1210', widthMm: 1210, heightMm: 910 },
+    { label: '1210 × 1510', widthMm: 1510, heightMm: 1210 },
+    { label: '1510 × 1510', widthMm: 1510, heightMm: 1510 },
+    { label: '1510 × 1810', widthMm: 1810, heightMm: 1510 },
+    { label: '1810 × 1510', widthMm: 1510, heightMm: 1810 },
+  ],
+  door: [
+    { label: '2071 × 670', widthMm: 670, heightMm: 2071 },
+    { label: '2071 × 770', widthMm: 770, heightMm: 2071 },
+    { label: '2071 × 870', widthMm: 870, heightMm: 2071 },
+    { label: '2071 × 970', widthMm: 970, heightMm: 2071 },
+    { label: '2071 × 1170', widthMm: 1170, heightMm: 2071 },
+    { label: '2371 × 970', widthMm: 970, heightMm: 2371 },
+  ],
+  gate: [
+    { label: '2500 × 3000', widthMm: 3000, heightMm: 2500 },
+    { label: '3000 × 3000', widthMm: 3000, heightMm: 3000 },
+    { label: '3500 × 4000', widthMm: 4000, heightMm: 3500 },
+    { label: '4000 × 4000', widthMm: 4000, heightMm: 4000 },
+    { label: '4500 × 5000', widthMm: 5000, heightMm: 4500 },
+    { label: '6000 × 6000', widthMm: 6000, heightMm: 6000 },
+  ],
+}
+
+function getDefaultOpeningSize(type: OpeningType) {
+  return openingSizePresets[type][0]
+}
+
 function createEmptyOpening(type: OpeningType = 'window'): Opening {
+  const defaultSize = getDefaultOpeningSize(type)
+
   return {
     id: createOpeningId(),
     type,
-    widthMm: type === 'window' ? 1500 : 1200,
-    heightMm: type === 'window' ? 1200 : 2100,
+    widthMm: defaultSize.widthMm,
+    heightMm: defaultSize.heightMm,
     quantity: 1,
   }
+}
+
+function clampValue(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max)
 }
 
 function createEmptyFacade(index: number): Facade {
@@ -1173,8 +1290,9 @@ function findEconomicalCassetteSize(
       const additionalHeights = new Set<number>()
 
       for (const facade of facades) {
+        const cornerFieldWidthMm = facade.widthMm + cornerProjectionMm * 2
         const cornerLayout = hasCornerCassettes
-          ? calculateCornerCassetteByFacade(facade.widthMm, l, rustMm, cornerProjectionMm, 200, 700, overlap?.horizontalMm ?? 0)
+          ? calculateCornerCassetteByFacade(cornerFieldWidthMm, l, rustMm, cornerProjectionMm, 200, 700, overlap?.horizontalMm ?? 0)
           : null
         const columns = hasCornerCassettes
           ? (cornerLayout?.rowCassetteCount ?? Number.POSITIVE_INFINITY)
@@ -1420,6 +1538,462 @@ function EngineeringMethodologyPage({ onBack }: { onBack: () => void }) {
   )
 }
 
+interface FacadeLayoutPreview {
+  facadeId: string
+  facadeName: string
+  facadeQuantity: number
+  columns: number
+  standardColumns: number
+  additionalColumnWidthMm: number
+  rows: number
+  standardRows: number
+  additionalRowHeightMm: number
+  perFacadePieces: number
+  totalPieces: number
+}
+
+function CassetteLayoutVisualizationPage({
+  project,
+  cassetteL,
+  cassetteH,
+  cassetteRust,
+  cornerProjectionMm,
+  layouts,
+  onBack,
+  onMoveOpening,
+}: {
+  project: Project
+  cassetteL: number
+  cassetteH: number
+  cassetteRust: number
+  cornerProjectionMm: number
+  layouts: FacadeLayoutPreview[]
+  onBack: () => void
+  onMoveOpening: (facadeId: string, openingId: string, positionIndex: number, xMm: number, yMm: number) => void
+}) {
+  const [visualMode, setVisualMode] = useState<'cassette' | 'facade'>('cassette')
+  const overlap = getCassetteLayoutOverlap(project.selectedCassetteType)
+  const horizontalOverlap = overlap?.horizontalMm ?? 0
+  const verticalOverlap = overlap?.verticalMm ?? 0
+  const standardDisplayWidth = Math.max(1, overlap ? cassetteL - horizontalOverlap : cassetteL + cassetteRust)
+  const standardDisplayHeight = Math.max(1, overlap ? cassetteH - verticalOverlap : cassetteH + cassetteRust)
+
+  return (
+    <div className="page theme-mono visualization-page">
+      <header className="visualization-hero">
+        <button className="btn btn-primary" type="button" onClick={onBack}>
+          ← Вернуться к калькулятору
+        </button>
+        <div>
+          <div className="calc-kicker">ИНСИ / визуальная раскладка</div>
+          <h1>Проверка сетки кассет</h1>
+          <p>
+            Схема показывает текущую расчетную раскладку по фасадам: стандартные кассеты, доборы по длине и высоте,
+            количество рядов и колонок. Проемы можно перетаскивать мышкой прямо по фасаду.
+          </p>
+        </div>
+        <div className="visualization-legend" aria-label="Обозначения">
+          <span><i className="legend-standard" />Стандартная кассета</span>
+          <span><i className="legend-extra" />Добор</span>
+          <span><i className="legend-corner" />Угловая кассета</span>
+          <span><i className="legend-opening" />Проем</span>
+          <span><i className="legend-rust" />Руст / шаг</span>
+        </div>
+      </header>
+
+      <section className="visualization-rule-strip">
+        <div>
+          <span>Тип</span>
+          <strong>{project.selectedCassetteType}</strong>
+        </div>
+        <div>
+          <span>Габарит кассеты</span>
+          <strong>{Number.isFinite(cassetteL) && Number.isFinite(cassetteH) ? `${cassetteL} × ${cassetteH} мм` : '—'}</strong>
+        </div>
+        <div>
+          <span>Расчетный руст</span>
+          <strong>{cassetteRust} мм</strong>
+        </div>
+        <div>
+          <span>Шаг раскладки</span>
+          <strong>
+            {overlap
+              ? `${standardDisplayWidth} × ${standardDisplayHeight} мм`
+              : `${cassetteL + cassetteRust} × ${cassetteH + cassetteRust} мм`}
+          </strong>
+        </div>
+        <div>
+          <span>Вынос системы</span>
+          <strong>{Math.round(cornerProjectionMm)} мм</strong>
+        </div>
+      </section>
+      <section className="visualization-mode-bar" aria-label="Режим визуализации">
+        <button
+          className={`btn visualization-mode-btn ${visualMode === 'cassette' ? 'active' : ''}`}
+          type="button"
+          onClick={() => setVisualMode('cassette')}
+        >
+          Кассетное поле
+        </button>
+        <button
+          className={`btn visualization-mode-btn ${visualMode === 'facade' ? 'active' : ''}`}
+          type="button"
+          onClick={() => setVisualMode('facade')}
+        >
+          Фасад здания
+        </button>
+      </section>
+
+      {layouts.length > 0 ? (
+        <div className="visualization-list">
+          {layouts.map((layout) => {
+            const facade = project.facades.find((item) => item.id === layout.facadeId)
+            if (!facade) return null
+
+            const columns = [
+              ...Array.from({ length: layout.standardColumns }, (_, index) => ({
+                key: `std-col-${index}`,
+                kind: 'standard' as const,
+                width: standardDisplayWidth,
+                label: `${cassetteL}`,
+              })),
+              ...(layout.additionalColumnWidthMm > 0
+                ? [{
+                    key: 'extra-col',
+                    kind: 'extra' as const,
+                    width: Math.max(1, layout.additionalColumnWidthMm - horizontalOverlap),
+                    label: `${layout.additionalColumnWidthMm}`,
+                  }]
+                : []),
+            ]
+            const rows = [
+              ...Array.from({ length: layout.standardRows }, (_, index) => ({
+                key: `std-row-${index}`,
+                kind: 'standard' as const,
+                height: standardDisplayHeight,
+                label: `${cassetteH}`,
+              })),
+              ...(layout.additionalRowHeightMm > 0
+                ? [{
+                    key: 'extra-row',
+                    kind: 'extra' as const,
+                    height: Math.max(1, layout.additionalRowHeightMm - verticalOverlap),
+                    label: `${layout.additionalRowHeightMm}`,
+                  }]
+                : []),
+            ]
+            const safeWidth = Math.max(1, facade.widthMm)
+            const safeHeight = Math.max(1, facade.heightMm)
+            const facadeInsetX = Math.max(0, Math.round(cornerProjectionMm))
+            const facadeInsetY = 0
+            const fieldWidth = safeWidth + facadeInsetX * 2
+            const fieldHeight = safeHeight
+            const labelEveryColumn = columns.length > 12 ? Math.ceil(columns.length / 8) : 1
+            const labelEveryRow = rows.length > 10 ? Math.ceil(rows.length / 7) : 1
+            const cornerCalculation =
+              project.hasCornerCassettes && project.outsideCorners > 0
+                ? calculateCornerCassetteByFacade(
+                    fieldWidth,
+                    cassetteL,
+                    cassetteRust,
+                    cornerProjectionMm,
+                    200,
+                    700,
+                    horizontalOverlap,
+                  )
+                : null
+            const cornerZoneWidth = cornerCalculation?.cornerWidthMm ?? 0
+            const visualColumns = columns
+            const adjustedRows = rows
+            const visualRows = adjustedRows.reduce<Array<(typeof adjustedRows)[number] & { y: number }>>((acc, row) => {
+              const previous = acc[acc.length - 1]
+              acc.push({
+                ...row,
+                y: previous ? previous.y + previous.height : 0,
+              })
+              return acc
+            }, [])
+            const openingItems = facade.hasOpenings
+              ? facade.openings.flatMap((opening) =>
+                  Array.from({ length: opening.quantity }, (_, index) => ({
+                    ...opening,
+                    openingId: opening.id,
+                    positionIndex: index,
+                    markerId: `${opening.id}-${index}`,
+                  })),
+                )
+              : []
+            const openingGap = openingItems.length > 0 ? safeWidth / (openingItems.length + 1) : 0
+            const openingMarkers = openingItems.map((opening, index) => {
+              const width = Math.min(opening.widthMm, safeWidth * 0.22)
+              const height = Math.min(opening.heightMm, safeHeight * 0.42)
+              const savedPosition = opening.positions?.[opening.positionIndex]
+              const rawX = openingGap * (index + 1) - width / 2
+              const defaultX = clampValue(rawX, 80, Math.max(80, safeWidth - width - 80))
+              const defaultY =
+                opening.type === 'door' || opening.type === 'gate'
+                  ? Math.max(0, safeHeight - height)
+                  : clampValue(safeHeight * 0.38 - height / 2, 120, Math.max(120, safeHeight - height - 220))
+              const x = savedPosition ? clampValue(savedPosition.xMm, 0, Math.max(0, safeWidth - width)) : defaultX
+              const y = savedPosition
+                ? clampValue(safeHeight - savedPosition.yMm - height, 0, Math.max(0, safeHeight - height))
+                : defaultY
+
+              return { ...opening, x, y, yFromBottomMm: Math.round(safeHeight - y - height), width, height }
+            })
+            const getSvgPoint = (event: ReactPointerEvent<SVGGElement>) => {
+              const svg = event.currentTarget.ownerSVGElement
+              if (!svg) return null
+              const screenMatrix = svg.getScreenCTM()
+              if (!screenMatrix) return null
+              const point = svg.createSVGPoint()
+              point.x = event.clientX
+              point.y = event.clientY
+              return point.matrixTransform(screenMatrix.inverse())
+            }
+
+            return (
+              <section className="visualization-card" key={layout.facadeId}>
+                <div className="visualization-card-head">
+                  <div>
+                    <h2>{layout.facadeName}</h2>
+                    <p>
+                      Фасад {facade.widthMm} × {facade.heightMm} мм
+                      {layout.facadeQuantity > 1 ? `, количество ${layout.facadeQuantity}` : ''}
+                    </p>
+                  </div>
+                  <div className="visualization-card-total">
+                    <span>Итого</span>
+                    <strong>{layout.totalPieces} шт</strong>
+                  </div>
+                </div>
+
+                <div className="visualization-drawing-wrap">
+                  <svg
+                    className={`visualization-drawing ${visualMode === 'facade' ? 'facade-view' : ''}`}
+                    viewBox={`0 0 ${fieldWidth} ${fieldHeight}`}
+                    role="img"
+                    aria-label={`Раскладка ${layout.facadeName}`}
+                    preserveAspectRatio="xMidYMid meet"
+                  >
+                    <defs>
+                      <pattern id={`rust-${layout.facadeId}`} width="80" height="80" patternUnits="userSpaceOnUse">
+                        <path d="M 80 0 L 0 0 0 80" fill="none" stroke="rgba(23,32,29,0.13)" strokeWidth="3" />
+                      </pattern>
+                      <clipPath id={`clip-${layout.facadeId}`}>
+                        <rect x="0" y="0" width={fieldWidth} height={fieldHeight} rx="0" />
+                      </clipPath>
+                    </defs>
+                    <rect
+                      x={facadeInsetX}
+                      y={facadeInsetY}
+                      width={safeWidth}
+                      height={safeHeight}
+                      className="facade-surface"
+                    />
+                    <rect
+                      x="0"
+                      y="0"
+                      width={fieldWidth}
+                      height={fieldHeight}
+                      className="cassette-field-background"
+                      fill={`url(#rust-${layout.facadeId})`}
+                    />
+                    <g clipPath={`url(#clip-${layout.facadeId})`}>
+                      <g className="cassette-field-layer">
+                        {cornerZoneWidth > 0
+                          ? visualRows.map((row, rowIndex) => {
+                            const showLabel = rowIndex % labelEveryRow === 0 || row.kind === 'extra'
+                            return (
+                              <g key={`corner-row-${row.key}`}>
+                                <rect
+                                  x="0"
+                                  y={row.y}
+                                  width={cornerZoneWidth}
+                                  height={row.height}
+                                  className="visual-corner-cell"
+                                />
+                                <rect
+                                  x={fieldWidth - cornerZoneWidth}
+                                  y={row.y}
+                                  width={cornerZoneWidth}
+                                  height={row.height}
+                                  className="visual-corner-cell"
+                                />
+                                {showLabel && cornerZoneWidth > safeWidth * 0.03 && row.height > safeHeight * 0.04 ? (
+                                  <>
+                                    <text
+                                      x={cornerZoneWidth / 2}
+                                      y={row.y + row.height / 2}
+                                      className="visual-corner-label"
+                                      textAnchor="middle"
+                                      dominantBaseline="middle"
+                                    >
+                                      УК
+                                    </text>
+                                    <text
+                                      x={fieldWidth - cornerZoneWidth / 2}
+                                      y={row.y + row.height / 2}
+                                      className="visual-corner-label"
+                                      textAnchor="middle"
+                                      dominantBaseline="middle"
+                                    >
+                                      УК
+                                    </text>
+                                  </>
+                                ) : null}
+                              </g>
+                            )
+                          })
+                          : null}
+                        <g transform={`translate(${cornerZoneWidth} 0)`}>
+                          {visualRows.flatMap((row, rowIndex) => {
+                            let x = 0
+                            const currentY = row.y
+
+                            return visualColumns.map((column, columnIndex) => {
+                              const currentX = x
+                              x += column.width
+                              const isExtra = row.kind === 'extra' || column.kind === 'extra'
+                              const showLabel =
+                                (columnIndex % labelEveryColumn === 0 && rowIndex % labelEveryRow === 0) ||
+                                isExtra
+                              const width = Math.max(1, column.width)
+                              const height = Math.max(1, row.height)
+
+                              return (
+                                <g key={`${row.key}-${column.key}`}>
+                                  <rect
+                                    x={currentX}
+                                    y={currentY}
+                                    width={width}
+                                    height={height}
+                                    className={isExtra ? 'cassette-cell cassette-cell-extra' : 'cassette-cell cassette-cell-standard'}
+                                  />
+                                  {showLabel && width > safeWidth * 0.045 && height > safeHeight * 0.04 ? (
+                                    <text
+                                      x={currentX + width / 2}
+                                      y={currentY + height / 2}
+                                      className="cassette-cell-label"
+                                      textAnchor="middle"
+                                      dominantBaseline="middle"
+                                    >
+                                      {isExtra ? 'добор' : `${column.label}×${row.label}`}
+                                    </text>
+                                  ) : null}
+                                </g>
+                              )
+                            })
+                          })}
+                        </g>
+                      </g>
+                      {openingMarkers.map((opening) => (
+                        <g
+                          key={opening.markerId}
+                          className="visual-opening-group"
+                          onPointerDown={(event) => {
+                            event.currentTarget.setPointerCapture(event.pointerId)
+                          }}
+                          onPointerMove={(event) => {
+                            if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
+                            const point = getSvgPoint(event)
+                            if (!point) return
+                            const xMm = Math.round(clampValue(point.x - facadeInsetX - opening.width / 2, 0, Math.max(0, safeWidth - opening.width)))
+                            const yTopMm = clampValue(point.y - facadeInsetY - opening.height / 2, 0, Math.max(0, safeHeight - opening.height))
+                            const yMm = Math.round(safeHeight - yTopMm - opening.height)
+                            onMoveOpening(facade.id, opening.openingId, opening.positionIndex, xMm, yMm)
+                          }}
+                          onPointerUp={(event) => {
+                            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                              event.currentTarget.releasePointerCapture(event.pointerId)
+                            }
+                          }}
+                          onPointerCancel={(event) => {
+                            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                              event.currentTarget.releasePointerCapture(event.pointerId)
+                            }
+                          }}
+                        >
+                          <rect
+                            x={opening.x + facadeInsetX}
+                            y={opening.y + facadeInsetY}
+                            width={opening.width}
+                            height={opening.height}
+                            className="visual-opening"
+                          />
+                          <text
+                            x={opening.x + facadeInsetX + opening.width / 2}
+                            y={opening.y + facadeInsetY + opening.height / 2}
+                            className="visual-opening-label"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                          >
+                            {opening.type === 'gate' ? 'ворота' : opening.type === 'door' ? 'дверь' : 'окно'}
+                          </text>
+                          <text
+                            x={opening.x + facadeInsetX + opening.width / 2}
+                            y={opening.y + facadeInsetY + opening.height + Math.max(90, safeHeight * 0.025)}
+                            className="visual-opening-coords"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                          >
+                            {`X ${Math.round(opening.x)} / Y ${opening.yFromBottomMm}`}
+                          </text>
+                        </g>
+                      ))}
+                    </g>
+                    <rect x="0" y="0" width={fieldWidth} height={fieldHeight} className="cassette-field-outline" />
+                    <rect
+                      x={facadeInsetX}
+                      y={facadeInsetY}
+                      width={safeWidth}
+                      height={safeHeight}
+                      className="facade-outline"
+                    />
+                  </svg>
+                </div>
+
+                <div className="visualization-stats">
+                  <div>
+                    <span>По длине</span>
+                    <strong>
+                      {layout.standardColumns} ст.
+                      {layout.additionalColumnWidthMm > 0 ? ` + добор ${layout.additionalColumnWidthMm} мм` : ''}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>По высоте</span>
+                    <strong>
+                      {layout.standardRows} ряд.
+                      {layout.additionalRowHeightMm > 0 ? ` + добор ${layout.additionalRowHeightMm} мм` : ''}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>На фасад</span>
+                    <strong>{layout.perFacadePieces} шт</strong>
+                  </div>
+                  <div>
+                    <span>Угловые кассеты</span>
+                    <strong>{cornerZoneWidth > 0 ? `${cornerZoneWidth} мм слева/справа` : 'нет'}</strong>
+                  </div>
+                  <div>
+                    <span>Проемы</span>
+                    <strong>{openingItems.length > 0 ? `${openingItems.length} шт` : 'нет'}</strong>
+                  </div>
+                </div>
+              </section>
+            )
+          })}
+        </div>
+      ) : (
+        <section className="visualization-card">
+          <div className="hint">Нет данных для визуализации. Проверьте размеры фасада и кассеты.</div>
+        </section>
+      )}
+    </div>
+  )
+}
+
 export default function App() {
   const [project, setProject] = useState<Project>(() => createDemoProject())
   const [uploadedPrice, setUploadedPrice] = useState<UploadedPriceData | null>(() => loadUploadedPriceData())
@@ -1427,6 +2001,7 @@ export default function App() {
   const [sharedPriceStatus, setSharedPriceStatus] = useState<'loading' | 'ready' | 'missing' | 'invalid'>('loading')
   const [priceUploadMessage, setPriceUploadMessage] = useState('')
   const [methodologyOpen, setMethodologyOpen] = useState(false)
+  const [visualizationOpen, setVisualizationOpen] = useState(false)
   const [cornerHeightMode, setCornerHeightMode] = useState<'auto' | 'manual'>('auto')
   const [manualCornerHeight, setManualCornerHeight] = useState<number>(maxFacadeHeight(createDemoProject().facades))
   const [cassetteSizeL, setCassetteSizeL] = useState('')
@@ -1614,7 +2189,7 @@ export default function App() {
           facadeName: facade.name,
           facadeQuantity: facade.quantity,
           calculation: calculateCornerCassetteByFacade(
-            facade.widthMm,
+            facade.widthMm + cornerSubsystemProjectionMm * 2,
             cassetteLValue,
             cassetteRustMm,
             cornerSubsystemProjectionMm,
@@ -1630,10 +2205,14 @@ export default function App() {
     Number.isFinite(cassetteHValue) &&
     cassetteHValue > 0
       ? project.facades.map((facade) => {
+          const cassetteFieldWidthMm =
+            project.hasCornerCassettes && hasOutsideCorners
+              ? facade.widthMm + cornerSubsystemProjectionMm * 2
+              : facade.widthMm
           const cornerLengthLayout =
             project.hasCornerCassettes && hasOutsideCorners
               ? calculateCornerCassetteByFacade(
-                  facade.widthMm,
+                  cassetteFieldWidthMm,
                   cassetteLValue,
                   cassetteRustMm,
                   cornerSubsystemProjectionMm,
@@ -1650,7 +2229,7 @@ export default function App() {
                   totalColumns: cornerLengthLayout?.rowCassetteCount ?? 0,
                 }
               : calculateCassetteColumnsAlongLength(
-                  facade.widthMm,
+                  cassetteFieldWidthMm,
                   cassetteLValue,
                   cassetteRustMm,
                   cassetteNumericLimits.l.min,
@@ -2486,7 +3065,7 @@ export default function App() {
       if (mainPieces > 0) {
         acc[mainKey] = acc[mainKey] ?? {
           key: mainKey,
-          item: mainSizeIsStandard ? 'Рядовые стандартные' : 'Рядовые доборные',
+          item: mainSizeIsStandard ? 'Стандартная кассета' : 'Доборная кассета',
           size: `H ${effectiveCassetteSizeH || '—'}; L ${effectiveCassetteSizeL || '—'}`,
           pieces: 0,
           areaM2: 0,
@@ -2501,7 +3080,7 @@ export default function App() {
         const lengthKey = `additional-${facade.additionalColumnWidthMm}-${cassetteHValue}`
         acc[lengthKey] = acc[lengthKey] ?? {
           key: lengthKey,
-          item: 'Рядовые доборные по длине',
+          item: 'Доборная кассета',
           size: `H ${effectiveCassetteSizeH || '—'}; L ${facade.additionalColumnWidthMm}`,
           pieces: 0,
           areaM2: 0,
@@ -2518,7 +3097,7 @@ export default function App() {
         const heightRowPriceItem = heightRowIsStandard ? standardCassettePriceItem : additionalCassettePriceItem
         acc[heightRowKey] = acc[heightRowKey] ?? {
           key: heightRowKey,
-          item: heightRowIsStandard ? 'Рядовые стандартные по высоте' : 'Рядовые доборные по высоте',
+          item: heightRowIsStandard ? 'Стандартная кассета' : 'Доборная кассета',
           size: `H ${facade.additionalRowHeightMm}; L ${effectiveCassetteSizeL || '—'}`,
           pieces: 0,
           areaM2: 0,
@@ -2532,7 +3111,7 @@ export default function App() {
         const cornerKey = `additional-${facade.additionalColumnWidthMm}-${facade.additionalRowHeightMm}`
         acc[cornerKey] = acc[cornerKey] ?? {
           key: cornerKey,
-          item: 'Рядовые доборные по длине и высоте',
+          item: 'Доборная кассета',
           size: `H ${facade.additionalRowHeightMm}; L ${facade.additionalColumnWidthMm}`,
           pieces: 0,
           areaM2: 0,
@@ -2608,6 +3187,19 @@ export default function App() {
     setCassetteSizeH('')
     setCassetteCoating('colorflow')
     setStandardSelectionMode('length')
+    setSubsystemBracketStepMm(defaultSubsystemBracketVerticalStepMm)
+    setPLevelsHelpOpen(false)
+  }
+
+  function applyQuickTestProject() {
+    const nextProject = createQuickTestProject()
+    setProject(nextProject)
+    setCornerHeightMode('auto')
+    setManualCornerHeight(maxFacadeHeight(nextProject.facades))
+    setCassetteSizeL('572')
+    setCassetteSizeH('567')
+    setCassetteCoating('colorflow')
+    setStandardSelectionMode('none')
     setSubsystemBracketStepMm(defaultSubsystemBracketVerticalStepMm)
     setPLevelsHelpOpen(false)
   }
@@ -2762,6 +3354,16 @@ export default function App() {
     }))
   }
 
+  function moveOpeningOnLayout(facadeId: string, openingId: string, positionIndex: number, xMm: number, yMm: number) {
+    updateOpening(facadeId, openingId, (opening) => {
+      const positions = Array.from({ length: Math.max(opening.quantity, positionIndex + 1) }, (_, index) =>
+        opening.positions?.[index] ?? { xMm: 0, yMm: 0 },
+      )
+      positions[positionIndex] = { xMm, yMm }
+      return { ...opening, positions }
+    })
+  }
+
   async function handlePriceFileUpload(file: File | null) {
     if (!file) return
 
@@ -2823,6 +3425,21 @@ export default function App() {
     return <EngineeringMethodologyPage onBack={() => setMethodologyOpen(false)} />
   }
 
+  if (visualizationOpen) {
+    return (
+      <CassetteLayoutVisualizationPage
+        project={project}
+        cassetteL={cassetteLValue}
+        cassetteH={cassetteHValue}
+        cassetteRust={cassetteRustMm}
+        cornerProjectionMm={cornerSubsystemProjectionMm}
+        layouts={regularCassettePreview}
+        onBack={() => setVisualizationOpen(false)}
+        onMoveOpening={moveOpeningOnLayout}
+      />
+    )
+  }
+
   const headerSpecTotalText = fullSpecTotalPrice > 0 ? `${formatInt(Math.round(fullSpecTotalPrice))} ₽` : '—'
   const headerPricePerM2Text = fullSpecPricePerM2 > 0 ? `${formatPrice(fullSpecPricePerM2)} ₽/м²` : '—'
   const headerAreaText = insulationAreaM2 > 0 ? `${formatAreaRounded(insulationAreaM2)} м²` : `${formatAreaRounded(facadeGrossAreaM2)} м²`
@@ -2881,6 +3498,14 @@ export default function App() {
           </div>
         </div>
       </header>
+      <section className="quick-action-panel" aria-label="Быстрые действия">
+        <button className="btn btn-quick-action" type="button" onClick={applyQuickTestProject}>
+          Заполнить тестовыми данными
+        </button>
+        <button className="btn btn-quick-action btn-quick-action-primary" type="button" onClick={() => setVisualizationOpen(true)}>
+          Раскладка кассетного поля
+        </button>
+      </section>
       <section className="price-upload-panel" aria-label="Загрузка прайса">
         <div>
           <div className="price-upload-title">Прайс Excel</div>
@@ -3025,22 +3650,59 @@ export default function App() {
                       ) : (
                         facade.openings.map((opening) => (
                           <div className="opening-row" key={opening.id}>
-                            <div className="grid-4">
+                            <div className="opening-grid">
                               <div className="field">
                                 <label className="label">Тип</label>
                                 <select
                                   className="select"
                                   value={opening.type}
-                                  onChange={(event) =>
+                                  onChange={(event) => {
+                                    const nextType = event.target.value as OpeningType
+                                    const defaultSize = getDefaultOpeningSize(nextType)
                                     updateOpening(facade.id, opening.id, (current) => ({
                                       ...current,
-                                      type: event.target.value as OpeningType,
+                                      type: nextType,
+                                      widthMm: defaultSize.widthMm,
+                                      heightMm: defaultSize.heightMm,
+                                      positions: undefined,
                                     }))
-                                  }
+                                  }}
                                 >
                                   <option value="window">Окно</option>
                                   <option value="door">Дверь</option>
+                                  <option value="gate">Ворота</option>
                                 </select>
+                              </div>
+                              <div className="field">
+                                <label className="label">Типовой размер</label>
+                                <select
+                                  className="select"
+                                  value={
+                                    openingSizePresets[opening.type].some(
+                                      (preset) => preset.widthMm === opening.widthMm && preset.heightMm === opening.heightMm,
+                                    )
+                                      ? `${opening.widthMm}x${opening.heightMm}`
+                                      : 'manual'
+                                  }
+                                  onChange={(event) => {
+                                    if (event.target.value === 'manual') return
+                                    const [widthMm, heightMm] = event.target.value.split('x').map((value) => Number(value))
+                                    updateOpening(facade.id, opening.id, (current) => ({
+                                      ...current,
+                                      widthMm,
+                                      heightMm,
+                                      positions: undefined,
+                                    }))
+                                  }}
+                                >
+                                  <option value="manual">Ручной размер</option>
+                                  {openingSizePresets[opening.type].map((preset) => (
+                                    <option key={`${preset.widthMm}x${preset.heightMm}`} value={`${preset.widthMm}x${preset.heightMm}`}>
+                                      {preset.label}
+                                    </option>
+                                  ))}
+                                </select>
+                                <div className="hint">Можно выбрать типовой или ввести ниже вручную.</div>
                               </div>
                               <div className="field">
                                 <label className="label">Ширина, мм</label>
@@ -3081,11 +3743,12 @@ export default function App() {
                                   }
                                 />
                               </div>
-                            </div>
-                            <div className="actions" style={{ marginTop: 10 }}>
-                              <button className="btn btn-danger" type="button" onClick={() => removeOpening(facade.id, opening.id)}>
-                                Удалить проём
-                              </button>
+                              <div className="field opening-delete-field">
+                                <label className="label">&nbsp;</label>
+                                <button className="btn btn-danger opening-delete-btn" type="button" onClick={() => removeOpening(facade.id, opening.id)}>
+                                  Удалить проём
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))
@@ -4102,9 +4765,14 @@ export default function App() {
             Подробное описание расчетного ядра, формул, допущений, источников и текущих ограничений калькулятора.
           </div>
         </div>
-        <button className="btn btn-primary" type="button" onClick={() => setMethodologyOpen(true)}>
-          Открыть методику расчета
-        </button>
+        <div className="methodology-link-actions">
+          <button className="btn btn-quiet" type="button" onClick={() => setVisualizationOpen(true)}>
+            Посмотреть раскладку
+          </button>
+          <button className="btn btn-primary" type="button" onClick={() => setMethodologyOpen(true)}>
+            Открыть методику расчета
+          </button>
+        </div>
       </section>
 
       {facadesHelpOpen ? (

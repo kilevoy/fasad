@@ -8,7 +8,7 @@ export type SubsystemCode =
   | 'standard_g'
   | 'frame'
 
-export type OpeningType = 'window' | 'door'
+export type OpeningType = 'window' | 'door' | 'gate'
 
 export interface Opening {
   id: string
@@ -16,6 +16,10 @@ export interface Opening {
   widthMm: number
   heightMm: number
   quantity: number
+  positions?: Array<{
+    xMm: number
+    yMm: number
+  }>
 }
 
 export interface Facade {
