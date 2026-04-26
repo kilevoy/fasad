@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "catalogMatchers": [
+    {
+      "catalogId": "cassettes",
+      "entityType": "cassette",
+      "requiredKeys": ["family", "role", "thickness", "coating"],
+      "optionalKeys": ["fasteningType", "rustStyle"],
+      "fallbackKeys": ["family", "role", "thickness"],
+      "forbiddenApproximation": true
+    },
+    {
+      "catalogId": "corner_cassettes",
+      "entityType": "corner_cassette",
+      "requiredKeys": ["family", "orientation", "thickness", "coating"],
+      "optionalKeys": ["baseCassetteFamily"],
+      "fallbackKeys": ["family", "orientation", "thickness"],
+      "forbiddenApproximation": true
+    },
+    {
+      "catalogId": "accessories_and_trims",
+      "entityType": "trim",
+      "requiredKeys": ["family", "mark", "standardLengthMm", "coating"],
+      "optionalKeys": ["sizeVariant", "thickness"],
+      "fallbackKeys": ["family", "mark", "standardLengthMm"],
+      "forbiddenApproximation": true
+    },
+    {
+      "catalogId": "subsystem",
+      "entityType": "mixed",
+      "requiredKeysByFamily": {
+        "kvp": ["family", "size", "coating", "steelGrade"],
+        "kvgu": ["family", "widthSeries", "length", "thickness", "coating", "steelGrade"],
+        "npp": ["family", "width", "height", "thickness", "coating"],
+        "npg": ["family", "leg", "thickness", "coating"],
+        "npsh": ["family", "profileType", "dimensions", "thickness", "coating"],
+        "npgs": ["family", "dimensions", "perforation", "thickness", "coating", "steelGrade"],
+        "pz": ["family", "dimensions", "perforation", "thickness", "coating"],
+        "bracket_washer": ["family", "size"],
+        "paronite_gasket": ["family", "areaMm2", "thickness"]
+      },
+      "forbiddenApproximation": true
+    },
+    {
+      "catalogId": "insulation_and_membrane",
+      "entityType": "mixed",
+      "requiredKeysByFamily": {
+        "mineral_wool": ["family", "usage", "densityMinKgM3"],
+        "glass_wool": ["family", "usage", "densityMinKgM3", "outerLayerRequiredMinMm"],
+        "windproof_vapor_permeable": ["family", "brandHint"],
+        "insulation_dowel": ["family", "usage"],
+        "membrane_joint_tape": ["family"]
+      },
+      "forbiddenApproximation": true
+    },
+    {
+      "catalogId": "fasteners",
+      "entityType": "mixed",
+      "requiredKeysByFamily": {
+        "rivet": ["family", "diameter", "length", "finish"],
+        "self_drilling_screw": ["family", "diameter", "length", "finish"],
+        "facade_dowel": ["family", "diameter", "length"],
+        "nail_dowel": ["family", "diameter", "length"],
+        "bracket_washer": ["family", "mark"]
+      },
+      "forbiddenApproximation": true
+    }
+  ],
+  "normalize": {
+    "coating": {
+      "Оцинк.": "galvanized",
+      "Оцинкованные": "galvanized",
+      "Колор-поток": "colorflow_1s",
+      "Колор-поток с двух сторон": "colorflow_2s",
+      "Полиэстер": "polyester",
+      "декор": "decor"
+    },
+    "unit": {
+      "шт": "pcs",
+      "м2": "m2",
+      "п.м": "lm",
+      "п.м.": "lm",
+      "м3": "m3"
+    }
+  },
+  "unmatchedPolicy": {
+    "status": "needs_price",
+    "updatePrice": false,
+    "updateCode": false,
+    "createAuditEntry": true
+  }
+}

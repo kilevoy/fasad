@@ -11,6 +11,10 @@ node_modules
 dist
 dist-ssr
 *.local
+tmp/
+test-results/
+desktop.ini
+**/desktop.ini
 
 # Editor directories and files
 .vscode/*

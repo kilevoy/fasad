@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "catalogs": [
+    {
+      "id": "cassettes",
+      "title": "Основные кассеты",
+      "sourceType": "price_and_rules",
+      "status": "active",
+      "dataFile": "C:\\КАЛЬКУЛЯТОР КАССЕТ\\Документация\\data\\cassette-catalog.seed.json",
+      "referenceFile": "C:\\КАЛЬКУЛЯТОР КАССЕТ\\Документация\\md\\cassette-catalog-reference.md",
+      "notes": "Есть базовый seed по рядовым и доборным кассетам КФ1, КФ2, КФ3, КФ4/17, КФ4/30."
+    },
+    {
+      "id": "corner_cassettes",
+      "title": "Угловые кассеты",
+      "sourceType": "price_and_rules",
+      "status": "active",
+      "dataFile": "C:\\КАЛЬКУЛЯТОР КАССЕТ\\Документация\\data\\corner-cassette-catalog.seed.json",
+      "referenceFile": "C:\\КАЛЬКУЛЯТОР КАССЕТ\\Документация\\md\\corner-cassette-catalog-reference.md",
+      "notes": "Есть базовый seed по УКФ и части УГКФ с реальными кодами и ценами."
+    },
+    {
+      "id": "accessories_and_trims",
+      "title": "Фасонные и доборные элементы",
+      "sourceType": "price_and_rules",
+      "status": "active",
+      "dataFile": "C:\\КАЛЬКУЛЯТОР КАССЕТ\\Документация\\data\\trim-catalog.seed.json",
+      "referenceFile": "C:\\КАЛЬКУЛЯТОР КАССЕТ\\Документация\\md\\trim-catalog-reference.md",
+      "notes": "Есть базовый seed по основным фасонным элементам и стартовым планкам."
+    },
+    {
+      "id": "subsystem",
+      "title": "Подсистема",
+      "sourceType": "price_and_rules",
+      "status": "active",
+      "dataFile": "C:\\КАЛЬКУЛЯТОР КАССЕТ\\Документация\\data\\subsystem-catalog.seed.json",
+      "referenceFile": "C:\\КАЛЬКУЛЯТОР КАССЕТ\\Документация\\md\\subsystem-catalog-reference.md",
+      "notes": "Есть нормализованные записи с кодами, ценами и статусами."
+    },
+    {
+      "id": "insulation_and_membrane",
+      "title": "Утеплитель, мембрана и дюбели",
+      "sourceType": "rules_only",
+      "status": "active",
+      "dataFile": "C:\\КАЛЬКУЛЯТОР КАССЕТ\\Документация\\data\\insulation-catalog.seed.json",
+      "referenceFile": "C:\\КАЛЬКУЛЯТОР КАССЕТ\\Документация\\md\\insulation-catalog-reference.md",
+      "notes": "Есть инженерный seed со статусом needs_price."
+    },
+    {
+      "id": "fasteners",
+      "title": "Крепеж",
+      "sourceType": "price_and_rules",
+      "status": "active",
+      "dataFile": "C:\\КАЛЬКУЛЯТОР КАССЕТ\\Документация\\data\\fastener-catalog.seed.json",
+      "referenceFile": "C:\\КАЛЬКУЛЯТОР КАССЕТ\\Документация\\md\\fastener-catalog-reference.md",
+      "notes": "Есть общий seed по базовому крепежу, но нормы расхода по-прежнему живут в инженерных правилах."
+    },
+    {
+      "id": "pricing_matching",
+      "title": "Слой сопоставления прайса",
+      "sourceType": "rules_only",
+      "status": "partial",
+      "dataFile": null,
+      "referenceFile": "C:\\КАЛЬКУЛЯТОР КАССЕТ\\Документация\\md\\subsystem-catalog-schema.md",
+      "notes": "Есть схема и правила матчинга, но еще нет общего движка для всех семейств."
+    }
+  ]
+}

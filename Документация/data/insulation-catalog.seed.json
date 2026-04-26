@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "generatedFrom": "engineering-rules",
+  "items": [
+    {
+      "productType": "insulation",
+      "family": "mineral_wool",
+      "usage": "outer_layer",
+      "flammability": "noncombustible",
+      "densityMinKgM3": 75,
+      "densityRecommendedKgM3": 80,
+      "thermalConductivity": 0.045,
+      "unit": "m3",
+      "code": null,
+      "price": null,
+      "status": "needs_price"
+    },
+    {
+      "productType": "insulation",
+      "family": "mineral_wool",
+      "usage": "outer_layer",
+      "flammability": "noncombustible",
+      "densityMinKgM3": 80,
+      "densityRecommendedKgM3": 100,
+      "thermalConductivity": 0.045,
+      "unit": "m3",
+      "code": null,
+      "price": null,
+      "status": "needs_price"
+    },
+    {
+      "productType": "insulation",
+      "family": "mineral_wool",
+      "usage": "inner_layer",
+      "flammability": "noncombustible",
+      "densityMinKgM3": 30,
+      "densityRecommendedKgM3": 40,
+      "thermalConductivity": 0.045,
+      "unit": "m3",
+      "code": null,
+      "price": null,
+      "status": "needs_price"
+    },
+    {
+      "productType": "insulation",
+      "family": "glass_wool",
+      "usage": "inner_layer_only",
+      "flammability": "allowed_with_outer_mineral_wool",
+      "densityMinKgM3": 30,
+      "outerLayerRequiredMinMm": 30,
+      "unit": "m3",
+      "code": null,
+      "price": null,
+      "status": "needs_price"
+    },
+    {
+      "productType": "membrane",
+      "family": "windproof_vapor_permeable",
+      "brandHint": "TYVEK",
+      "usage": "wind_protection",
+      "overlapMinMm": 150,
+      "overlapMaxMm": 200,
+      "jointTapeRequired": true,
+      "unit": "m2",
+      "code": null,
+      "price": null,
+      "status": "needs_price"
+    },
+    {
+      "productType": "fastener",
+      "family": "insulation_dowel",
+      "material": "glass_polyamide",
+      "usage": "single_layer_main_zone",
+      "ratePerM2": 5,
+      "plateDiameterMinMm": null,
+      "unit": "pcs",
+      "code": null,
+      "price": null,
+      "status": "needs_price"
+    },
+    {
+      "productType": "fastener",
+      "family": "insulation_dowel",
+      "material": "glass_polyamide",
+      "usage": "single_layer_corner_zone",
+      "ratePerM2": 6,
+      "plateDiameterMinMm": null,
+      "unit": "pcs",
+      "code": null,
+      "price": null,
+      "status": "needs_price"
+    },
+    {
+      "productType": "fastener",
+      "family": "insulation_dowel",
+      "material": "glass_polyamide",
+      "usage": "double_layer_main_zone",
+      "ratePerM2": 10,
+      "plateDiameterMinMm": null,
+      "unit": "pcs",
+      "code": null,
+      "price": null,
+      "status": "needs_price"
+    },
+    {
+      "productType": "fastener",
+      "family": "insulation_dowel",
+      "material": "glass_polyamide",
+      "usage": "double_layer_corner_zone",
+      "ratePerM2": 12,
+      "plateDiameterMinMm": null,
+      "unit": "pcs",
+      "code": null,
+      "price": null,
+      "status": "needs_price"
+    },
+    {
+      "productType": "fastener",
+      "family": "insulation_dowel",
+      "material": "glass_polyamide",
+      "usage": "soft_inner_layer",
+      "ratePerM2": null,
+      "plateDiameterMinMm": 150,
+      "unit": "pcs",
+      "code": null,
+      "price": null,
+      "status": "needs_price"
+    },
+    {
+      "productType": "consumable",
+      "family": "membrane_joint_tape",
+      "usage": "membrane_joint_sealing",
+      "unit": "lm",
+      "code": null,
+      "price": null,
+      "status": "needs_price"
+    }
+  ]
+}
