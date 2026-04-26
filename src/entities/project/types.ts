@@ -16,10 +16,13 @@ export interface Opening {
   widthMm: number
   heightMm: number
   quantity: number
-  positions?: Array<{
-    xMm: number
-    yMm: number
-  }>
+  positions?: Array<
+    | {
+        xMm: number
+        yMm: number
+      }
+    | undefined
+  >
 }
 
 export interface Facade {

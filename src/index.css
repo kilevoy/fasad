@@ -1313,7 +1313,7 @@ textarea.input:focus {
 
 .visualization-hero {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px 22px;
   align-items: start;
   border: 2px solid #111;
@@ -1420,8 +1420,16 @@ textarea.input:focus {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
   margin: -4px 0 14px;
+}
+
+.visualization-mode-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .visualization-mode-btn {
@@ -1500,6 +1508,15 @@ textarea.input:focus {
   font-size: 13px;
 }
 
+.visualization-size-lines {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+  color: #4b4b4b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .visualization-card-total {
   min-width: 116px;
   border: 2px solid #111;
@@ -1546,7 +1563,19 @@ textarea.input:focus {
   background-size: 420px 420px;
 }
 
+.visualization-drawing.subsystem-view {
+  background:
+    linear-gradient(90deg, rgba(17, 17, 17, 0.035) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(17, 17, 17, 0.035) 1px, transparent 1px),
+    #f8f6ee;
+  background-size: 420px 420px;
+}
+
 .visualization-drawing.facade-view .facade-surface {
+  opacity: 1;
+}
+
+.visualization-drawing.subsystem-view .facade-surface {
   opacity: 1;
 }
 
@@ -1554,8 +1583,16 @@ textarea.input:focus {
   opacity: 0.08;
 }
 
+.visualization-drawing.subsystem-view .cassette-field-background {
+  opacity: 0.04;
+}
+
 .visualization-drawing.facade-view .cassette-field-layer {
   opacity: 0.18;
+}
+
+.visualization-drawing.subsystem-view .cassette-field-layer {
+  opacity: 0.07;
 }
 
 .visualization-drawing.facade-view .cassette-cell-label,
@@ -1565,11 +1602,68 @@ textarea.input:focus {
 
 .visualization-drawing.facade-view .visual-opening {
   fill: rgba(255, 255, 255, 0.96);
-  stroke-width: 16;
+  stroke-width: 6;
 }
 
 .visualization-drawing.facade-view .visual-opening-label {
   font-size: 150px;
+}
+
+.subsystem-layer {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.visualization-drawing.subsystem-view .subsystem-layer {
+  opacity: 1;
+}
+
+.subsystem-vertical-guide {
+  stroke: #1b5f49;
+  stroke-width: 9;
+  vector-effect: non-scaling-stroke;
+}
+
+.subsystem-vertical-guide-g {
+  stroke: #365f8f;
+  stroke-width: 8;
+}
+
+.subsystem-vertical-guide-p-double {
+  stroke: #1b5f49;
+  stroke-width: 7;
+}
+
+.subsystem-front-vertical-guide {
+  stroke: #742f8f;
+  stroke-dasharray: 42 24;
+  stroke-width: 7;
+  vector-effect: non-scaling-stroke;
+}
+
+.subsystem-horizontal-guide {
+  stroke: rgba(31, 89, 124, 0.7);
+  stroke-dasharray: 55 28;
+  stroke-width: 7;
+  vector-effect: non-scaling-stroke;
+}
+
+.subsystem-horizontal-guide-g {
+  stroke: rgba(54, 95, 143, 0.8);
+  stroke-dasharray: none;
+  stroke-width: 8;
+}
+
+.subsystem-bracket {
+  fill: #f3c84d;
+  stroke: #111;
+  stroke-width: 5;
+  vector-effect: non-scaling-stroke;
+}
+
+.subsystem-bracket-g {
+  fill: #fff;
+  stroke: #365f8f;
 }
 
 .cassette-cell {
@@ -1607,7 +1701,7 @@ textarea.input:focus {
 .visual-opening {
   fill: rgba(255, 255, 255, 0.82);
   stroke: #111;
-  stroke-width: 10;
+  stroke-width: 5;
   vector-effect: non-scaling-stroke;
 }
 
@@ -1643,6 +1737,72 @@ textarea.input:focus {
   vector-effect: non-scaling-stroke;
 }
 
+.opening-distance-panel {
+  border: 2px solid #111;
+  border-radius: 4px;
+  margin-top: 12px;
+  background: #fbfaf5;
+}
+
+.opening-distance-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid #111;
+  padding: 9px 11px;
+  background: #3a453f;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.opening-distance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.opening-distance-actions label {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.opening-distance-actions input {
+  width: 14px;
+  height: 14px;
+  accent-color: #111;
+}
+
+.opening-distance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+  padding: 11px;
+}
+
+.opening-distance-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.opening-distance-field span {
+  color: #4b4b4b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .cassette-cell-label {
   fill: #111;
   font-family: "Cascadia Mono", "Consolas", monospace;
@@ -1675,9 +1835,20 @@ textarea.input:focus {
   stroke-width: 5;
 }
 
+.visualization-drawing.subsystem-view .facade-outline {
+  opacity: 1;
+  stroke-width: 5;
+}
+
 .visualization-drawing.facade-view .cassette-field-outline {
   opacity: 1;
   stroke: rgba(33, 107, 86, 0.38);
+  stroke-dasharray: 70 42;
+}
+
+.visualization-drawing.subsystem-view .cassette-field-outline {
+  opacity: 0.55;
+  stroke: rgba(33, 107, 86, 0.28);
   stroke-dasharray: 70 42;
 }
 

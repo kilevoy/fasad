@@ -1558,6 +1558,7 @@ function CassetteLayoutVisualizationPage({
   cassetteH,
   cassetteRust,
   cornerProjectionMm,
+  subsystemBracketStepMm,
   layouts,
   onBack,
   onMoveOpening,
@@ -1567,11 +1568,12 @@ function CassetteLayoutVisualizationPage({
   cassetteH: number
   cassetteRust: number
   cornerProjectionMm: number
+  subsystemBracketStepMm: number
   layouts: FacadeLayoutPreview[]
   onBack: () => void
   onMoveOpening: (facadeId: string, openingId: string, positionIndex: number, xMm: number, yMm: number) => void
 }) {
-  const [visualMode, setVisualMode] = useState<'cassette' | 'facade'>('cassette')
+  const [visualMode, setVisualMode] = useState<'cassette' | 'facade' | 'subsystem'>('cassette')
   const overlap = getCassetteLayoutOverlap(project.selectedCassetteType)
   const horizontalOverlap = overlap?.horizontalMm ?? 0
   const verticalOverlap = overlap?.verticalMm ?? 0
@@ -1581,12 +1583,9 @@ function CassetteLayoutVisualizationPage({
   return (
     <div className="page theme-mono visualization-page">
       <header className="visualization-hero">
-        <button className="btn btn-primary" type="button" onClick={onBack}>
-          ← Вернуться к калькулятору
-        </button>
         <div>
           <div className="calc-kicker">ИНСИ / визуальная раскладка</div>
-          <h1>Проверка сетки кассет</h1>
+          <h1>Раскладка кассет</h1>
           <p>
             Схема показывает текущую расчетную раскладку по фасадам: стандартные кассеты, доборы по длине и высоте,
             количество рядов и колонок. Проемы можно перетаскивать мышкой прямо по фасаду.
@@ -1607,8 +1606,8 @@ function CassetteLayoutVisualizationPage({
           <strong>{project.selectedCassetteType}</strong>
         </div>
         <div>
-          <span>Габарит кассеты</span>
-          <strong>{Number.isFinite(cassetteL) && Number.isFinite(cassetteH) ? `${cassetteL} × ${cassetteH} мм` : '—'}</strong>
+          <span>Размер рядовой кассеты</span>
+          <strong>{Number.isFinite(cassetteL) && Number.isFinite(cassetteH) ? `H ${cassetteH}; L ${cassetteL} мм` : '—'}</strong>
         </div>
         <div>
           <span>Расчетный руст</span>
@@ -1628,20 +1627,32 @@ function CassetteLayoutVisualizationPage({
         </div>
       </section>
       <section className="visualization-mode-bar" aria-label="Режим визуализации">
-        <button
-          className={`btn visualization-mode-btn ${visualMode === 'cassette' ? 'active' : ''}`}
-          type="button"
-          onClick={() => setVisualMode('cassette')}
-        >
-          Кассетное поле
+        <button className="btn btn-primary" type="button" onClick={onBack}>
+          ← Вернуться к калькулятору
         </button>
-        <button
-          className={`btn visualization-mode-btn ${visualMode === 'facade' ? 'active' : ''}`}
-          type="button"
-          onClick={() => setVisualMode('facade')}
-        >
-          Фасад здания
-        </button>
+        <div className="visualization-mode-actions">
+          <button
+            className={`btn visualization-mode-btn ${visualMode === 'cassette' ? 'active' : ''}`}
+            type="button"
+            onClick={() => setVisualMode('cassette')}
+          >
+            Кассетное поле
+          </button>
+          <button
+            className={`btn visualization-mode-btn ${visualMode === 'facade' ? 'active' : ''}`}
+            type="button"
+            onClick={() => setVisualMode('facade')}
+          >
+            Фасад здания
+          </button>
+          <button
+            className={`btn visualization-mode-btn ${visualMode === 'subsystem' ? 'active' : ''}`}
+            type="button"
+            onClick={() => setVisualMode('subsystem')}
+          >
+            Подсистема
+          </button>
+        </div>
       </section>
 
       {layouts.length > 0 ? (
@@ -1688,8 +1699,33 @@ function CassetteLayoutVisualizationPage({
             const facadeInsetY = 0
             const fieldWidth = safeWidth + facadeInsetX * 2
             const fieldHeight = safeHeight
-            const labelEveryColumn = columns.length > 12 ? Math.ceil(columns.length / 8) : 1
-            const labelEveryRow = rows.length > 10 ? Math.ceil(rows.length / 7) : 1
+            const subsystemIsGVisual = project.subsystem.code === 'standard_g'
+            const subsystemIsPDoubleVisual = project.subsystem.code === 'standard_p_double_level'
+            const subsystemBracketRows = Math.max(
+              2,
+              calculateBracketRowsAlongProfile(safeHeight, subsystemBracketStepMm, subsystemEdgeBracketOffsetMm),
+            )
+            const subsystemBracketY = Array.from({ length: subsystemBracketRows }, (_, index) => {
+              if (subsystemBracketRows === 1) return safeHeight / 2
+              return subsystemEdgeBracketOffsetMm +
+                ((safeHeight - subsystemEdgeBracketOffsetMm * 2) * index) / Math.max(1, subsystemBracketRows - 1)
+            })
+            const subsystemHorizontalRows = subsystemIsGVisual
+              ? subsystemBracketY.map((y, index) => ({
+                  key: `subsystem-g-horizontal-${index}`,
+                  kind: 'g' as const,
+                  y,
+                }))
+              : subsystemIsPDoubleVisual
+                ? (() => {
+                    const rowCount = Math.max(2, Math.ceil(safeHeight / maxSubsystemVerticalProfileStepMm) + 1)
+                    return Array.from({ length: rowCount }, (_, index) => ({
+                      key: `subsystem-horizontal-${index}`,
+                      kind: 'p-double' as const,
+                      y: (safeHeight * index) / Math.max(1, rowCount - 1),
+                    }))
+                  })()
+                : []
             const cornerCalculation =
               project.hasCornerCassettes && project.outsideCorners > 0
                 ? calculateCornerCassetteByFacade(
@@ -1704,6 +1740,23 @@ function CassetteLayoutVisualizationPage({
                 : null
             const cornerZoneWidth = cornerCalculation?.cornerWidthMm ?? 0
             const visualColumns = columns
+            const seamPositions = [0]
+            if (cornerZoneWidth > 0) seamPositions.push(cornerZoneWidth)
+            visualColumns.reduce((x, column) => {
+              const nextX = x + column.width
+              seamPositions.push(nextX)
+              return nextX
+            }, cornerZoneWidth)
+            if (cornerZoneWidth > 0) {
+              seamPositions.push(fieldWidth - cornerZoneWidth, fieldWidth)
+            }
+            const subsystemVerticalLines = [...new Set(seamPositions.map((x) => Math.round(clampValue(x, 0, fieldWidth))))]
+              .sort((a, b) => a - b)
+              .map((x, index) => ({
+                key: `subsystem-line-${index}`,
+                x,
+              }))
+            const doubleLevelOffset = subsystemIsPDoubleVisual ? Math.max(20, Math.min(42, safeWidth * 0.0025)) : 0
             const adjustedRows = rows
             const visualRows = adjustedRows.reduce<Array<(typeof adjustedRows)[number] & { y: number }>>((acc, row) => {
               const previous = acc[acc.length - 1]
@@ -1741,6 +1794,40 @@ function CassetteLayoutVisualizationPage({
 
               return { ...opening, x, y, yFromBottomMm: Math.round(safeHeight - y - height), width, height }
             })
+            const sortedOpeningMarkers = [...openingMarkers].sort((a, b) => a.x - b.x)
+            const windowOpeningMarkers = sortedOpeningMarkers.filter((opening) => opening.type === 'window')
+            const openingXAxisControls = sortedOpeningMarkers.map((opening, index) => ({
+              key: `x-${opening.markerId}`,
+              label: `Проем ${index + 1}: X от 0`,
+              value: Math.round(opening.x),
+              onChange: (xMm: number) => {
+                const nextX = clampValue(xMm, 0, Math.max(0, safeWidth - opening.width))
+                onMoveOpening(facade.id, opening.openingId, opening.positionIndex, Math.round(nextX), opening.yFromBottomMm)
+              },
+            }))
+            const alignWindowsByY = () => {
+              if (windowOpeningMarkers.length < 2) return
+              const targetY = windowOpeningMarkers[0].yFromBottomMm
+              windowOpeningMarkers.forEach((opening) => {
+                onMoveOpening(facade.id, opening.openingId, opening.positionIndex, Math.round(opening.x), targetY)
+              })
+            }
+            const distributeWindowsByX = () => {
+              if (windowOpeningMarkers.length < 2) return
+              const totalOpeningWidth = windowOpeningMarkers.reduce((sum, opening) => sum + opening.width, 0)
+              const gap = Math.max(0, (safeWidth - totalOpeningWidth) / (windowOpeningMarkers.length + 1))
+              let nextX = gap
+              windowOpeningMarkers.forEach((opening) => {
+                onMoveOpening(
+                  facade.id,
+                  opening.openingId,
+                  opening.positionIndex,
+                  Math.round(clampValue(nextX, 0, Math.max(0, safeWidth - opening.width))),
+                  opening.yFromBottomMm,
+                )
+                nextX += opening.width + gap
+              })
+            }
             const getSvgPoint = (event: ReactPointerEvent<SVGGElement>) => {
               const svg = event.currentTarget.ownerSVGElement
               if (!svg) return null
@@ -1757,10 +1844,11 @@ function CassetteLayoutVisualizationPage({
                 <div className="visualization-card-head">
                   <div>
                     <h2>{layout.facadeName}</h2>
-                    <p>
-                      Фасад {facade.widthMm} × {facade.heightMm} мм
-                      {layout.facadeQuantity > 1 ? `, количество ${layout.facadeQuantity}` : ''}
-                    </p>
+                    <div className="visualization-size-lines">
+                      <span>Размер стены: {facade.widthMm} × {facade.heightMm} мм</span>
+                      <span>Размер кассетного поля: {fieldWidth} × {fieldHeight} мм</span>
+                      {layout.facadeQuantity > 1 ? <span>Количество: {layout.facadeQuantity}</span> : null}
+                    </div>
                   </div>
                   <div className="visualization-card-total">
                     <span>Итого</span>
@@ -1770,7 +1858,7 @@ function CassetteLayoutVisualizationPage({
 
                 <div className="visualization-drawing-wrap">
                   <svg
-                    className={`visualization-drawing ${visualMode === 'facade' ? 'facade-view' : ''}`}
+                    className={`visualization-drawing ${visualMode === 'facade' ? 'facade-view' : ''} ${visualMode === 'subsystem' ? 'subsystem-view' : ''}`}
                     viewBox={`0 0 ${fieldWidth} ${fieldHeight}`}
                     role="img"
                     aria-label={`Раскладка ${layout.facadeName}`}
@@ -1802,8 +1890,7 @@ function CassetteLayoutVisualizationPage({
                     <g clipPath={`url(#clip-${layout.facadeId})`}>
                       <g className="cassette-field-layer">
                         {cornerZoneWidth > 0
-                          ? visualRows.map((row, rowIndex) => {
-                            const showLabel = rowIndex % labelEveryRow === 0 || row.kind === 'extra'
+                          ? visualRows.map((row) => {
                             return (
                               <g key={`corner-row-${row.key}`}>
                                 <rect
@@ -1820,44 +1907,19 @@ function CassetteLayoutVisualizationPage({
                                   height={row.height}
                                   className="visual-corner-cell"
                                 />
-                                {showLabel && cornerZoneWidth > safeWidth * 0.03 && row.height > safeHeight * 0.04 ? (
-                                  <>
-                                    <text
-                                      x={cornerZoneWidth / 2}
-                                      y={row.y + row.height / 2}
-                                      className="visual-corner-label"
-                                      textAnchor="middle"
-                                      dominantBaseline="middle"
-                                    >
-                                      УК
-                                    </text>
-                                    <text
-                                      x={fieldWidth - cornerZoneWidth / 2}
-                                      y={row.y + row.height / 2}
-                                      className="visual-corner-label"
-                                      textAnchor="middle"
-                                      dominantBaseline="middle"
-                                    >
-                                      УК
-                                    </text>
-                                  </>
-                                ) : null}
                               </g>
                             )
                           })
                           : null}
                         <g transform={`translate(${cornerZoneWidth} 0)`}>
-                          {visualRows.flatMap((row, rowIndex) => {
+                          {visualRows.flatMap((row) => {
                             let x = 0
                             const currentY = row.y
 
-                            return visualColumns.map((column, columnIndex) => {
+                            return visualColumns.map((column) => {
                               const currentX = x
                               x += column.width
                               const isExtra = row.kind === 'extra' || column.kind === 'extra'
-                              const showLabel =
-                                (columnIndex % labelEveryColumn === 0 && rowIndex % labelEveryRow === 0) ||
-                                isExtra
                               const width = Math.max(1, column.width)
                               const height = Math.max(1, row.height)
 
@@ -1870,22 +1932,59 @@ function CassetteLayoutVisualizationPage({
                                     height={height}
                                     className={isExtra ? 'cassette-cell cassette-cell-extra' : 'cassette-cell cassette-cell-standard'}
                                   />
-                                  {showLabel && width > safeWidth * 0.045 && height > safeHeight * 0.04 ? (
-                                    <text
-                                      x={currentX + width / 2}
-                                      y={currentY + height / 2}
-                                      className="cassette-cell-label"
-                                      textAnchor="middle"
-                                      dominantBaseline="middle"
-                                    >
-                                      {isExtra ? 'добор' : `${column.label}×${row.label}`}
-                                    </text>
-                                  ) : null}
                                 </g>
                               )
                             })
                           })}
                         </g>
+                      </g>
+                      <g className="subsystem-layer">
+                        {subsystemHorizontalRows.map((row) => (
+                          <line
+                            key={row.key}
+                            x1={facadeInsetX}
+                            y1={facadeInsetY + row.y}
+                            x2={facadeInsetX + safeWidth}
+                            y2={facadeInsetY + row.y}
+                            className={row.kind === 'g' ? 'subsystem-horizontal-guide subsystem-horizontal-guide-g' : 'subsystem-horizontal-guide'}
+                          />
+                        ))}
+                        {subsystemVerticalLines.map((line) => (
+                          <line
+                            key={line.key}
+                            x1={line.x}
+                            y1={facadeInsetY}
+                            x2={line.x}
+                            y2={facadeInsetY + safeHeight}
+                            className={`subsystem-vertical-guide ${subsystemIsGVisual ? 'subsystem-vertical-guide-g' : ''} ${subsystemIsPDoubleVisual ? 'subsystem-vertical-guide-p-double' : ''}`}
+                          />
+                        ))}
+                        {subsystemIsPDoubleVisual
+                          ? subsystemVerticalLines.map((line) => {
+                              const x = clampValue(line.x + doubleLevelOffset, 0, fieldWidth)
+                              return (
+                                <line
+                                  key={`${line.key}-front`}
+                                  x1={x}
+                                  y1={facadeInsetY}
+                                  x2={x}
+                                  y2={facadeInsetY + safeHeight}
+                                  className="subsystem-front-vertical-guide"
+                                />
+                              )
+                            })
+                          : null}
+                        {subsystemVerticalLines.flatMap((line) =>
+                          subsystemBracketY.map((y, index) => (
+                            <circle
+                              key={`${line.key}-bracket-${index}`}
+                              cx={line.x}
+                              cy={facadeInsetY + y}
+                              r={Math.max(24, Math.min(42, safeWidth * 0.004))}
+                              className={`subsystem-bracket ${subsystemIsGVisual ? 'subsystem-bracket-g' : ''}`}
+                            />
+                          )),
+                        )}
                       </g>
                       {openingMarkers.map((opening) => (
                         <g
@@ -1930,15 +2029,6 @@ function CassetteLayoutVisualizationPage({
                           >
                             {opening.type === 'gate' ? 'ворота' : opening.type === 'door' ? 'дверь' : 'окно'}
                           </text>
-                          <text
-                            x={opening.x + facadeInsetX + opening.width / 2}
-                            y={opening.y + facadeInsetY + opening.height + Math.max(90, safeHeight * 0.025)}
-                            className="visual-opening-coords"
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                          >
-                            {`X ${Math.round(opening.x)} / Y ${opening.yFromBottomMm}`}
-                          </text>
                         </g>
                       ))}
                     </g>
@@ -1952,6 +2042,50 @@ function CassetteLayoutVisualizationPage({
                     />
                   </svg>
                 </div>
+
+                {openingXAxisControls.length > 0 ? (
+                  <div className="opening-distance-panel" aria-label="Положение проемов от нуля">
+                    <div className="opening-distance-head">
+                      <span>Положение проемов по X от 0, мм</span>
+                      {windowOpeningMarkers.length > 1 ? (
+                        <div className="opening-distance-actions">
+                          <label>
+                            <input type="checkbox" checked={false} onChange={alignWindowsByY} />
+                            выровнять оконные проемы по Y
+                          </label>
+                          <label>
+                            <input type="checkbox" checked={false} onChange={distributeWindowsByX} />
+                            распределить оконные проемы по X
+                          </label>
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="opening-distance-grid">
+                      {openingXAxisControls.map((control) => (
+                        <label className="opening-distance-field" key={control.key}>
+                          <span>{control.label}</span>
+                          <input
+                            className="input"
+                            defaultValue={control.value}
+                            inputMode="numeric"
+                            key={`${control.key}-${control.value}`}
+                            min={0}
+                            type="number"
+                            onBlur={(event) => {
+                              if (event.currentTarget.value.trim() === '') return
+                              const distanceMm = parseMm(event.currentTarget.value)
+                              control.onChange(Math.max(0, distanceMm))
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key !== 'Enter' || event.currentTarget.value.trim() === '') return
+                              event.currentTarget.blur()
+                            }}
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="visualization-stats">
                   <div>
@@ -3356,9 +3490,7 @@ export default function App() {
 
   function moveOpeningOnLayout(facadeId: string, openingId: string, positionIndex: number, xMm: number, yMm: number) {
     updateOpening(facadeId, openingId, (opening) => {
-      const positions = Array.from({ length: Math.max(opening.quantity, positionIndex + 1) }, (_, index) =>
-        opening.positions?.[index] ?? { xMm: 0, yMm: 0 },
-      )
+      const positions = [...(opening.positions ?? [])]
       positions[positionIndex] = { xMm, yMm }
       return { ...opening, positions }
     })
@@ -3433,6 +3565,7 @@ export default function App() {
         cassetteH={cassetteHValue}
         cassetteRust={cassetteRustMm}
         cornerProjectionMm={cornerSubsystemProjectionMm}
+        subsystemBracketStepMm={subsystemBracketStepMm}
         layouts={regularCassettePreview}
         onBack={() => setVisualizationOpen(false)}
         onMoveOpening={moveOpeningOnLayout}
