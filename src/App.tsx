@@ -1335,14 +1335,21 @@ function findEconomicalCassetteSize(
 
 const cornerCassettePriceCatalog = [
   { family: 'УКФ1', thickness: 0.7, coating: 'polyester', code: '2178', name: 'Кассета угловая 1 (УКФ1) 0,7', unit: 'm2', price: 1650 },
+  { family: 'УКФ1', thickness: 0.7, coating: 'colorflow_1s', code: '1473', name: 'Кассета угловая 1 (УКФ1) 0,7 (Колор-поток)', unit: 'm2', price: 1741 },
+  { family: 'УКФ1', thickness: 1.0, coating: 'colorflow_1s', code: '1474', name: 'Кассета угловая 1 (УКФ1) 1,0 (Колор-поток)', unit: 'm2', price: 2052 },
   { family: 'УКФ1', thickness: 1.2, coating: 'colorflow_1s', code: '113368', name: 'Кассета угловая 1 (УКФ1) 1,2 (Колор-поток)', unit: 'm2', price: 2626 },
   { family: 'УКФ2', thickness: 0.7, coating: 'polyester', code: '2179', name: 'Кассета угловая 2 (УКФ2) 0,7', unit: 'm2', price: 1650 },
+  { family: 'УКФ2', thickness: 0.7, coating: 'colorflow_1s', code: '1475', name: 'Кассета угловая 2 (УКФ2) 0,7 (Колор-поток)', unit: 'm2', price: 1741 },
+  { family: 'УКФ2', thickness: 1.0, coating: 'colorflow_1s', code: '1476', name: 'Кассета угловая 2 (УКФ2) 1,0 (Колор-поток)', unit: 'm2', price: 2052 },
   { family: 'УКФ2', thickness: 1.2, coating: 'colorflow_1s', code: '58026', name: 'Кассета угловая 2 (УКФ2) 1,2 (Колор-поток)', unit: 'm2', price: 2626 },
   { family: 'УКФ3', thickness: 0.7, coating: 'polyester', code: '57733', name: 'Кассета угловая 3 (УКФ3) 0,7', unit: 'm2', price: 1650 },
+  { family: 'УКФ3', thickness: 0.7, coating: 'colorflow_1s', code: '57750', name: 'Кассета угловая 3 (УКФ3) 0,7 (Колор-поток)', unit: 'm2', price: 1741 },
   { family: 'УКФ3', thickness: 1.2, coating: 'colorflow_1s', code: '58031', name: 'Кассета угловая 3 (УКФ3) 1,2 (Колор-поток)', unit: 'm2', price: 2626 },
   { family: 'УКФ4/17', thickness: 0.7, coating: 'polyester', code: '71690', name: 'Кассета угловая 4/17 (УКФ4/17) 0,7', unit: 'm2', price: 1650 },
+  { family: 'УКФ4/17', thickness: 0.7, coating: 'colorflow_1s', code: '71691', name: 'Кассета угловая 4/17 (УКФ4/17) 0,7 (Колор-поток)', unit: 'm2', price: 1741 },
   { family: 'УКФ4/17', thickness: 1.2, coating: 'colorflow_1s', code: '71696', name: 'Кассета угловая 4/17 (УКФ4/17) 1,2 (Колор-поток)', unit: 'm2', price: 2626 },
   { family: 'УКФ4/30', thickness: 0.7, coating: 'polyester', code: '71717', name: 'Кассета угловая 4/30 (УКФ4/30) 0,7', unit: 'm2', price: 1650 },
+  { family: 'УКФ4/30', thickness: 0.7, coating: 'colorflow_1s', code: '71718', name: 'Кассета угловая 4/30 (УКФ4/30) 0,7 (Колор-поток)', unit: 'm2', price: 1741 },
   { family: 'УКФ4/30', thickness: 1.2, coating: 'colorflow_1s', code: '71723', name: 'Кассета угловая 4/30 (УКФ4/30) 1,2 (Колор-поток)', unit: 'm2', price: 2626 },
 ] as const
 

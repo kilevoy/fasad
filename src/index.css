@@ -1120,15 +1120,15 @@ textarea.input:focus {
 }
 
 .cassette-spec-table .spec-col-section {
-  width: 10%;
+  width: 13%;
 }
 
 .cassette-spec-table .spec-col-element {
-  width: 29%;
+  width: 27%;
 }
 
 .cassette-spec-table .spec-col-name {
-  width: 29%;
+  width: 28%;
 }
 
 .cassette-spec-table .spec-col-qty {
@@ -1154,6 +1154,12 @@ textarea.input:focus {
   text-align: left;
   vertical-align: top;
   overflow-wrap: anywhere;
+}
+
+.summary-spec-table td:first-child {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .cassette-spec-table th {
