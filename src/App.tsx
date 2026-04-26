@@ -4906,9 +4906,6 @@ export default function App() {
           </div>
         </div>
         <div className="methodology-link-actions">
-          <button className="btn btn-quiet" type="button" onClick={() => setVisualizationOpen(true)}>
-            Посмотреть раскладку
-          </button>
           <button className="btn btn-primary" type="button" onClick={() => setMethodologyOpen(true)}>
             Открыть методику расчета
           </button>
