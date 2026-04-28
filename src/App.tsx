@@ -5161,7 +5161,7 @@ export default function App() {
                 packagingRows.map((row) => (
                   <tr key={row.id}>
                     <td>уп{row.id}</td>
-                    <td>{formatInt(row.lengthMm)}х{formatInt(row.widthMm)}х{formatInt(row.heightMm)}</td>
+                    <td>{row.lengthMm}х{row.widthMm}х{row.heightMm}</td>
                     <td>{formatInt(row.rowCount)}</td>
                     <td>{formatInt(row.pieceCount)} шт</td>
                     <td>
