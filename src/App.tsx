@@ -1105,7 +1105,7 @@ function pickOpeningDripKey(requiredDepthMm: number) {
 
 function pickKvguPriceItemByStaticCatalog(requiredReachMm: number, coating: 'galvanized' | 'colorflow_2s') {
   const options = subsystemPriceItems
-    .filter((item) => item.family === 'kvgu' && item.coating === coating)
+    .filter((item) => item.family === 'kvgu')
     .map((item) => {
       const match = item.key.match(/^kvgu-(\d+)-(\d+)-([\d-]+)-/)
       if (!match) return null
@@ -1118,8 +1118,13 @@ function pickKvguPriceItemByStaticCatalog(requiredReachMm: number, coating: 'gal
     .filter((item): item is { item: SubsystemPriceItem; series: number; length: number } => item !== null)
     .sort((a, b) => a.length - b.length || a.series - b.series)
 
-  const suitable = options.find((option) => option.length >= requiredReachMm)
-  return suitable ?? options[options.length - 1] ?? null
+  const preferredSuitable = options.find((option) => option.item.coating === coating && option.length >= requiredReachMm)
+  if (preferredSuitable) return preferredSuitable
+
+  const galvanizedSuitable = options.find((option) => option.item.coating === 'galvanized' && option.length >= requiredReachMm)
+  if (galvanizedSuitable) return galvanizedSuitable
+
+  return options[options.length - 1] ?? null
 }
 
 function getCassetteStandardSizes(code: Project['selectedCassetteType']) {
