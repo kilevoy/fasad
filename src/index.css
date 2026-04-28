@@ -1287,6 +1287,16 @@ textarea.input:focus {
   font-weight: 400;
 }
 
+.theme-mono .packaging-table tbody > tr:last-child td,
+.theme-mono .packaging-table tbody > tr:last-child td:nth-child(6),
+.theme-mono .packaging-table tbody > tr:last-child td:nth-child(7) {
+  background: #fff;
+  color: #111;
+  border-top: 1px solid rgba(17, 17, 17, 0.12);
+  font-size: 13px;
+  font-weight: 400;
+}
+
 .packaging-item-line + .packaging-item-line {
   margin-top: 5px;
 }
