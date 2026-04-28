@@ -14,6 +14,7 @@ const uploadedPriceStorageKey = 'insi-calculator-uploaded-price'
 const uploadedPriceFileStorageKey = 'insi-calculator-uploaded-price-file'
 const priceParserVersion = 2
 const sharedPriceUrl = './price.json'
+const appViewHistoryStateKey = 'insiCalculatorView'
 const cassetteThicknessOptions = [0.7, 1.0, 1.2] as const
 const maxSubsystemBracketVerticalStepMm = 800
 const maxSubsystemVerticalProfileStepMm = 800
@@ -2383,6 +2384,38 @@ export default function App() {
     () => buildUploadedPriceIndex(activePrice?.rows ?? []),
     [activePrice],
   )
+
+  useEffect(() => {
+    const syncViewFromHistory = () => {
+      const view = window.history.state?.[appViewHistoryStateKey]
+      setMethodologyOpen(view === 'methodology')
+      setVisualizationOpen(view === 'visualization')
+    }
+
+    window.addEventListener('popstate', syncViewFromHistory)
+    return () => window.removeEventListener('popstate', syncViewFromHistory)
+  }, [])
+
+  function openAppView(view: 'methodology' | 'visualization') {
+    window.history.pushState(
+      { ...(window.history.state ?? {}), [appViewHistoryStateKey]: view },
+      '',
+      `#${view}`,
+    )
+    setMethodologyOpen(view === 'methodology')
+    setVisualizationOpen(view === 'visualization')
+  }
+
+  function closeAppView(view: 'methodology' | 'visualization') {
+    if (window.history.state?.[appViewHistoryStateKey] === view) {
+      window.history.back()
+      return
+    }
+
+    if (view === 'methodology') setMethodologyOpen(false)
+    else setVisualizationOpen(false)
+  }
+
   const applyUploadedPrice = <T extends CatalogItemWithPrice>(item: T | null | undefined): T | null => {
     if (!item) return null
     const uploaded = uploadedPriceIndex.get(normalizePriceCode(item.code))
@@ -3802,7 +3835,7 @@ export default function App() {
   }
 
   if (methodologyOpen) {
-    return <EngineeringMethodologyPage onBack={() => setMethodologyOpen(false)} />
+    return <EngineeringMethodologyPage onBack={() => closeAppView('methodology')} />
   }
 
   if (visualizationOpen) {
@@ -3815,7 +3848,7 @@ export default function App() {
         cornerProjectionMm={cornerSubsystemProjectionMm}
         subsystemBracketStepMm={subsystemBracketStepMm}
         layouts={regularCassettePreview}
-        onBack={() => setVisualizationOpen(false)}
+        onBack={() => closeAppView('visualization')}
         onMoveOpening={moveOpeningOnLayout}
       />
     )
@@ -3886,7 +3919,7 @@ export default function App() {
         <button className="btn btn-quick-action" type="button" onClick={resetProject}>
           Очистить данные
         </button>
-        <button className="btn btn-quick-action btn-quick-action-primary" type="button" onClick={() => setVisualizationOpen(true)}>
+        <button className="btn btn-quick-action btn-quick-action-primary" type="button" onClick={() => openAppView('visualization')}>
           Раскладка кассетного поля
         </button>
       </section>
@@ -5225,7 +5258,7 @@ export default function App() {
           </div>
         </div>
         <div className="methodology-link-actions">
-          <button className="btn btn-primary" type="button" onClick={() => setMethodologyOpen(true)}>
+          <button className="btn btn-primary" type="button" onClick={() => openAppView('methodology')}>
             Открыть методику расчета
           </button>
         </div>
