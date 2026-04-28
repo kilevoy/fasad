@@ -1241,6 +1241,56 @@ textarea.input:focus {
   backdrop-filter: blur(8px);
 }
 
+.packaging-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.packaging-table th:nth-child(1) {
+  width: 8%;
+}
+
+.packaging-table th:nth-child(2) {
+  width: 18%;
+}
+
+.packaging-table th:nth-child(3),
+.packaging-table th:nth-child(4) {
+  width: 10%;
+}
+
+.packaging-table th:nth-child(5) {
+  width: 38%;
+}
+
+.packaging-table th:nth-child(6) {
+  width: 16%;
+}
+
+.packaging-table td:nth-child(2),
+.packaging-table td:nth-child(3),
+.packaging-table td:nth-child(4) {
+  font-family: "Cascadia Mono", "Consolas", monospace;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.packaging-table tbody > tr:last-child td,
+.packaging-table tbody > tr:last-child td:nth-child(6),
+.packaging-table tbody > tr:last-child td:nth-child(7) {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  border-top: 1px solid rgba(124, 113, 89, 0.13);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.packaging-item-line + .packaging-item-line {
+  margin-top: 5px;
+}
+
 .pending-costs-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2058,6 +2108,7 @@ textarea.input:focus {
   .summary-grid,
   .price-summary-grid,
   .corners-grid,
+  .packaging-summary-grid,
   .pending-costs-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -2196,6 +2247,7 @@ textarea.input:focus {
   .summary-grid,
   .price-summary-grid,
   .corners-grid,
+  .packaging-summary-grid,
   .pending-costs-grid,
   .choice-row,
   .corner-auto-row {

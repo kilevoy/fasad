@@ -797,6 +797,166 @@ function countFastenersOnLine(lengthMm: number, stepMm: number) {
   return Math.ceil(lengthMm / stepMm) + 1
 }
 
+interface PackagingCassetteInput {
+  key: string
+  name: string
+  hMm: number
+  lMm: number
+  pieces: number
+}
+
+interface PackagingCassetteRow {
+  key: string
+  name: string
+  hMm: number
+  lMm: number
+  pieces: number
+}
+
+interface PackagingItemSummary {
+  key: string
+  name: string
+  hMm: number
+  lMm: number
+  pieces: number
+}
+
+interface PackagingPackage {
+  id: number
+  lengthMm: number
+  widthMm: number
+  heightMm: number
+  rows: PackagingCassetteRow[]
+  items: PackagingItemSummary[]
+  rowCount: number
+  pieceCount: number
+  note: string
+}
+
+function getCassettePackagingDepthMm(code: Project['selectedCassetteType']) {
+  if (code === 'КФ-3' || code === 'КФ-4 (17)') return 17
+  return 30
+}
+
+function getCassettePackagingPiecesPerRow(lMm: number) {
+  return lMm <= 1000 ? 2 : 1
+}
+
+function createPackagingRows(items: PackagingCassetteInput[]) {
+  return items
+    .filter((item) => item.pieces > 0 && item.hMm > 0 && item.lMm > 0)
+    .sort((a, b) => b.lMm - a.lMm || b.hMm - a.hMm)
+    .flatMap((item) => {
+      const piecesPerRow = getCassettePackagingPiecesPerRow(item.lMm)
+      const fullRows = Math.floor(item.pieces / piecesPerRow)
+      const remainder = item.pieces % piecesPerRow
+      const rows: PackagingCassetteRow[] = Array.from({ length: fullRows }, () => ({
+        key: item.key,
+        name: item.name,
+        hMm: item.hMm,
+        lMm: item.lMm,
+        pieces: piecesPerRow,
+      }))
+
+      if (remainder > 0) {
+        rows.push({
+          key: item.key,
+          name: item.name,
+          hMm: item.hMm,
+          lMm: item.lMm,
+          pieces: remainder,
+        })
+      }
+
+      return rows
+    })
+}
+
+function summarizePackagingItems(rows: PackagingCassetteRow[]) {
+  return Object.values(
+    rows.reduce<Record<string, PackagingItemSummary>>((acc, row) => {
+      const key = `${row.key}-${row.hMm}-${row.lMm}`
+      acc[key] = acc[key] ?? {
+        key,
+        name: row.name,
+        hMm: row.hMm,
+        lMm: row.lMm,
+        pieces: 0,
+      }
+      acc[key].pieces += row.pieces
+      return acc
+    }, {}),
+  ).sort((a, b) => b.lMm - a.lMm || b.pieces - a.pieces)
+}
+
+function calculatePackagingOuterSize(rows: PackagingCassetteRow[], lengthMm: number) {
+  const rowWidths = rows.map((row) => row.lMm * row.pieces)
+  const maxRowWidthMm = Math.max(0, ...rowWidths)
+  const maxHeightMm = Math.max(0, ...rows.map((row) => row.hMm))
+  const widthReserveMm = 150
+  const heightReserveMm = 168
+
+  return {
+    lengthMm,
+    widthMm: Math.min(2000, Math.ceil((maxRowWidthMm + widthReserveMm) / 10) * 10),
+    heightMm: Math.min(1400, Math.ceil((maxHeightMm + heightReserveMm) / 10) * 10),
+  }
+}
+
+function createPackagingPackage(id: number, rows: PackagingCassetteRow[], lengthMm: number): PackagingPackage {
+  const size = calculatePackagingOuterSize(rows, lengthMm)
+
+  return {
+    id,
+    ...size,
+    rows,
+    items: summarizePackagingItems(rows),
+    rowCount: rows.length,
+    pieceCount: rows.reduce((sum, row) => sum + row.pieces, 0),
+    note:
+      lengthMm > 2200
+        ? 'исключение по длине'
+        : rows.length > 72
+          ? 'добивка остатка'
+          : rows.some((row) => row.pieces > 1)
+            ? '2 кассеты в ряду'
+            : 'стандарт',
+  }
+}
+
+function calculateCassettePackaging(items: PackagingCassetteInput[], cassetteType: Project['selectedCassetteType']) {
+  const rows = createPackagingRows(items)
+  const packages: PackagingPackage[] = []
+  const standardRowsPerPackage = cassetteType === 'КФ-3' || cassetteType === 'КФ-4 (17)' ? 129 : 72
+  const defaultLengthMm = 2200
+  const exceptionLengthMm = 2300
+  const maxDefaultRows = Math.floor(defaultLengthMm / getCassettePackagingDepthMm(cassetteType))
+  const maxExceptionRows = Math.floor(exceptionLengthMm / getCassettePackagingDepthMm(cassetteType))
+
+  for (let index = 0; index < rows.length; index += standardRowsPerPackage) {
+    packages.push(createPackagingPackage(packages.length + 1, rows.slice(index, index + standardRowsPerPackage), defaultLengthMm))
+  }
+
+  const lastPackage = packages[packages.length - 1]
+  if (lastPackage && packages.length > 1 && lastPackage.rowCount <= packages.length - 1) {
+    packages.pop()
+    lastPackage.rows.forEach((row, index) => {
+      packages[index % packages.length].rows.push(row)
+    })
+  } else if (lastPackage && packages.length > 1 && lastPackage.rowCount <= 4) {
+    const previousPackage = packages[packages.length - 2]
+    if (previousPackage.rows.length + lastPackage.rows.length <= maxExceptionRows) {
+      packages.pop()
+      previousPackage.rows.push(...lastPackage.rows)
+    }
+  }
+
+  return packages.map((pack, index) => {
+    const lengthMm = pack.rows.length > maxDefaultRows && pack.rows.length <= maxExceptionRows ? exceptionLengthMm : defaultLengthMm
+    return createPackagingPackage(index + 1, pack.rows, lengthMm)
+  })
+}
+
 function loadUploadedPriceData(): UploadedPriceData | null {
   try {
     const raw = localStorage.getItem(uploadedPriceStorageKey)
@@ -1507,13 +1667,31 @@ function EngineeringMethodologyPage({ onBack }: { onBack: () => void }) {
         </div>
         <div className="methodology-formula">цена за м² = итог / расчетная площадь</div>
         <p>
-          Блоки проектирования, монтажной схемы и упаковки пока вынесены в раздел «Дополнительные расчеты» со статусом
+          Блоки проектирования и монтажной схемы пока вынесены в раздел «Дополнительные расчеты» со статусом
           «В разработке». Их алгоритмы будут добавлены после утверждения правил.
         </p>
       </section>
 
       <section className="methodology-section">
-        <h2>10. Использованные источники</h2>
+        <h2>10. Расчет упаковок</h2>
+        <p>
+          Упаковки считаются по рядовым кассетам. В одной упаковке должны быть кассеты одного цвета и одного типа.
+          Базовая упаковка формируется на 72 ряда, а небольшой остаток допускается добивать в уже сформированные упаковки.
+        </p>
+        <div className="methodology-formula">ряд упаковки = 1 кассета при L &gt; 1000 мм или 2 кассеты при L ≤ 1000 мм</div>
+        <div className="methodology-formula">длина пачки = количество рядов × D</div>
+        <ul>
+          <li>Для КФ-1, КФ-2 и КФ-4/30 рабочая глубина D принимается 30 мм.</li>
+          <li>Для КФ-3 и КФ-4/17 рабочая глубина D принимается 17 мм.</li>
+          <li>По умолчанию используется длина упаковки 2200 мм.</li>
+          <li>Длина 2300 мм допускается как исключение для плотной добивки, когда 2200 мм не хватает по количеству рядов.</li>
+          <li>Разные ширины в одной упаковке допускаются, если сохраняются цвет, тип кассеты и габаритные ограничения упаковки.</li>
+          <li>Угловые кассеты в текущей версии показываются в спецификации отдельно и пока не включаются в расчет упаковок.</li>
+        </ul>
+      </section>
+
+      <section className="methodology-section">
+        <h2>11. Использованные источники</h2>
         <ul className="methodology-sources">
           <li>Документация/md/calculator-current-rules.md — текущие правила калькулятора и проверочные сценарии.</li>
           <li>Документация/md/cassette-rules.md — типы КФ, стандартность, крепление, ограничения по КФ-4.</li>
@@ -1533,7 +1711,7 @@ function EngineeringMethodologyPage({ onBack }: { onBack: () => void }) {
       </section>
 
       <section className="methodology-section">
-        <h2>11. Ограничения текущей версии</h2>
+        <h2>12. Ограничения текущей версии</h2>
         <ul>
           <li>Калькулятор не заменяет рабочую монтажную схему и не выполняет 3D-узел каждого примыкания.</li>
           <li>Раскрой вокруг проемов учитывается через вычитание площади, но не через индивидуальные карты раскроя.</li>
@@ -3191,6 +3369,8 @@ export default function App() {
           key: string
           item: string
           size: string
+          hMm: number
+          lMm: number
           pieces: number
           areaM2: number
           priceItem: typeof standardCassettePriceItem
@@ -3208,6 +3388,8 @@ export default function App() {
           key: mainKey,
           item: mainSizeIsStandard ? 'Стандартная кассета' : 'Доборная кассета',
           size: `H ${effectiveCassetteSizeH || '—'}; L ${effectiveCassetteSizeL || '—'}`,
+          hMm: cassetteHValue,
+          lMm: cassetteLValue,
           pieces: 0,
           areaM2: 0,
           priceItem: mainSizeIsStandard ? standardCassettePriceItem : additionalCassettePriceItem,
@@ -3223,6 +3405,8 @@ export default function App() {
           key: lengthKey,
           item: 'Доборная кассета',
           size: `H ${effectiveCassetteSizeH || '—'}; L ${facade.additionalColumnWidthMm}`,
+          hMm: cassetteHValue,
+          lMm: facade.additionalColumnWidthMm,
           pieces: 0,
           areaM2: 0,
           priceItem: additionalCassettePriceItem,
@@ -3240,6 +3424,8 @@ export default function App() {
           key: heightRowKey,
           item: heightRowIsStandard ? 'Стандартная кассета' : 'Доборная кассета',
           size: `H ${facade.additionalRowHeightMm}; L ${effectiveCassetteSizeL || '—'}`,
+          hMm: facade.additionalRowHeightMm,
+          lMm: cassetteLValue,
           pieces: 0,
           areaM2: 0,
           priceItem: heightRowPriceItem,
@@ -3254,6 +3440,8 @@ export default function App() {
           key: cornerKey,
           item: 'Доборная кассета',
           size: `H ${facade.additionalRowHeightMm}; L ${facade.additionalColumnWidthMm}`,
+          hMm: facade.additionalRowHeightMm,
+          lMm: facade.additionalColumnWidthMm,
           pieces: 0,
           areaM2: 0,
           priceItem: additionalCassettePriceItem,
@@ -3303,6 +3491,18 @@ export default function App() {
       : []),
   ]
   const visibleCassetteSpecRows = cassetteSpecRows.filter((row) => row.pieces > 0)
+  const packagingInputRows = regularSpecRows.map((row) => ({
+    key: row.key,
+    name: row.item,
+    hMm: row.hMm,
+    lMm: row.lMm,
+    pieces: row.pieces,
+  }))
+  const packagingRows = calculateCassettePackaging(packagingInputRows, project.selectedCassetteType)
+  const totalPackagingRows = packagingRows.reduce((sum, row) => sum + row.rowCount, 0)
+  const totalPackagingPieces = packagingRows.reduce((sum, row) => sum + row.pieceCount, 0)
+  const packagingHasCornerCassettesOutside =
+    project.hasCornerCassettes && hasOutsideCorners && totalCornerCassetteCount > 0
   const cassetteSpecTotalPrice = visibleCassetteSpecRows.reduce((sum, row) => sum + (row.totalPrice ?? 0), 0)
   const totalCassetteSpecPieces = visibleCassetteSpecRows.reduce((sum, row) => sum + row.pieces, 0)
   const totalCassetteSpecAreaM2 = visibleCassetteSpecRows.reduce(
@@ -4869,6 +5069,89 @@ export default function App() {
         </div>
       </section>
 
+      <section className="section packaging-section">
+        <div className="section-head">
+          <div>
+            <div className="section-title">Расчет упаковок</div>
+          </div>
+          <div className="section-sub">
+            {packagingRows.length > 0
+              ? `${formatInt(packagingRows.length)} упак. / ${formatInt(totalPackagingPieces)} шт`
+              : 'Заполните кассеты'}
+          </div>
+        </div>
+
+        <div className="packaging-summary-grid">
+          <div className="summary-item">
+            <div className="summary-name">Тип кассеты</div>
+            <div className="summary-val">{project.selectedCassetteType}</div>
+          </div>
+          <div className="summary-item">
+            <div className="summary-name">Глубина D</div>
+            <div className="summary-val">{getCassettePackagingDepthMm(project.selectedCassetteType)} мм</div>
+          </div>
+          <div className="summary-item">
+            <div className="summary-name">Рядов</div>
+            <div className="summary-val">{totalPackagingRows > 0 ? formatInt(totalPackagingRows) : '—'}</div>
+          </div>
+          <div className="summary-item">
+            <div className="summary-name">Упаковок</div>
+            <div className="summary-val">{packagingRows.length > 0 ? formatInt(packagingRows.length) : '—'}</div>
+          </div>
+        </div>
+
+        <div className="cassette-spec-table-wrap packaging-table-wrap">
+          <table className="cassette-spec-table packaging-table">
+            <thead>
+              <tr>
+                <th>Уп.</th>
+                <th>Габариты упаковки</th>
+                <th>Ряды</th>
+                <th>Кассеты</th>
+                <th>Состав</th>
+                <th>Примечание</th>
+              </tr>
+            </thead>
+            <tbody>
+              {packagingRows.length > 0 ? (
+                packagingRows.map((row) => (
+                  <tr key={row.id}>
+                    <td>уп{row.id}</td>
+                    <td>
+                      <div>Длина {formatInt(row.lengthMm)} мм</div>
+                      <div>Ширина {formatInt(row.widthMm)} мм</div>
+                      <div>Высота {formatInt(row.heightMm)} мм</div>
+                    </td>
+                    <td>{formatInt(row.rowCount)}</td>
+                    <td>{formatInt(row.pieceCount)} шт</td>
+                    <td>
+                      {row.items.map((item) => (
+                        <div className="packaging-item-line" key={item.key}>
+                          {item.name}: H {item.hMm}; L {item.lMm} - {formatInt(item.pieces)} шт
+                        </div>
+                      ))}
+                    </td>
+                    <td>{row.note}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6}>Заполните размер кассет и фасады, чтобы получить расчет упаковок.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {packagingHasCornerCassettesOutside ? (
+          <div className="cassette-spec-notes">
+            <div className="hint" style={{ textAlign: 'left' }}>
+              Угловые кассеты пока показаны в спецификации отдельно и не включены в этот расчет упаковок.
+            </div>
+          </div>
+        ) : null}
+      </section>
+
       <section className="section pending-costs-section">
         <div className="section-head">
           <div>
@@ -4879,7 +5162,7 @@ export default function App() {
               </button>
             </div>
           </div>
-          <div className="section-sub">Проектирование, монтажная схема и упаковка будут рассчитаны после утверждения алгоритмов.</div>
+          <div className="section-sub">Проектирование и монтажная схема будут рассчитаны после утверждения алгоритмов.</div>
         </div>
 
         <div className="pending-costs-grid">
@@ -4893,7 +5176,7 @@ export default function App() {
           </div>
           <div className="pending-cost-card">
             <div className="pending-cost-name">Количество и стоимость упаковки</div>
-            <div className="pending-cost-status">В разработке</div>
+            <div className="pending-cost-status">Количество добавлено</div>
           </div>
         </div>
       </section>
@@ -4996,7 +5279,7 @@ export default function App() {
       {pendingCostsHelpOpen ? (
         <HelpModal title="Дополнительные расчеты" subtitle="Что будет добавлено после утверждения алгоритмов." onClose={() => setPendingCostsHelpOpen(false)}>
           <h3>Что здесь будет</h3>
-          <p>В этот блок будут добавлены стоимость проектирования, разработка монтажной схемы, количество и стоимость упаковки. Сейчас эти строки оставлены как напоминание, что коммерческое предложение не ограничивается только материалами.</p>
+          <p>В этот блок будут добавлены стоимость проектирования, разработка монтажной схемы и стоимость упаковки. Количество упаковок уже считается отдельным разделом на основной странице.</p>
           <h3>Как объяснить клиенту</h3>
           <p>«Материалы уже считаются в спецификации. Проектирование, монтажная схема и упаковка будут добавлены отдельными строками, когда будут утверждены правила расчета».</p>
         </HelpModal>
