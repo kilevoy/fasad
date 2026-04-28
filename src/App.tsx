@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type PointerEvent as ReactPointerEvent, t
 import { facadeCassetteTypes } from './entities/catalog/facade-cassette-types'
 import { cassetteCodeToFamily, cassettePriceCatalog } from './entities/catalog/cassette-price-catalog'
 import type { Facade, Opening, OpeningType, Project } from './entities/project/types'
-import { createDemoProject } from './features/calculator/model/create-demo-project'
 import { calculateProjectGeometry } from './features/calculator/model/geometry'
 import {
   buildUploadedPriceIndex,
@@ -16,7 +15,6 @@ const uploadedPriceFileStorageKey = 'insi-calculator-uploaded-price-file'
 const priceParserVersion = 2
 const sharedPriceUrl = './price.json'
 const cassetteThicknessOptions = [0.7, 1.0, 1.2] as const
-const defaultSubsystemBracketVerticalStepMm = 800
 const maxSubsystemBracketVerticalStepMm = 800
 const maxSubsystemVerticalProfileStepMm = 800
 const subsystemEdgeBracketOffsetMm = 125
@@ -63,7 +61,7 @@ function createQuickTestProject(): Project {
     subsystem: {
       code: 'standard_p_vertical',
       visibleGuideColor: true,
-      airGapMm: 40,
+      airGapMm: 60,
     },
     facades: [
       {
@@ -119,9 +117,47 @@ function createQuickTestProject(): Project {
       },
     ],
     insulation: {
+      enabled: true,
+      layers: 1,
+      thicknessMm: 150,
+      membrane: false,
+    },
+  }
+}
+
+function createBlankProject(): Project {
+  return {
+    id: 'blank-project',
+    name: '',
+    city: '',
+    description: '',
+    estimateMode: 'project',
+    outsideCorners: 0,
+    insideCorners: 0,
+    selectedCassetteType: 'КФ-1',
+    cassetteThicknessMm: 1.0,
+    layoutMode: 'horizontal',
+    hasCornerCassettes: false,
+    subsystem: {
+      code: 'standard_p_vertical',
+      visibleGuideColor: true,
+      airGapMm: 60,
+    },
+    facades: [
+      {
+        id: 'blank-facade-a',
+        name: 'Фасад А',
+        quantity: 1,
+        widthMm: 0,
+        heightMm: 0,
+        hasOpenings: false,
+        openings: [],
+      },
+    ],
+    insulation: {
       enabled: false,
       layers: 1,
-      thicknessMm: 50,
+      thicknessMm: 150,
       membrane: false,
     },
   }
@@ -2319,7 +2355,7 @@ function CassetteLayoutVisualizationPage({
 }
 
 export default function App() {
-  const [project, setProject] = useState<Project>(() => createDemoProject())
+  const [project, setProject] = useState<Project>(() => createQuickTestProject())
   const [uploadedPrice, setUploadedPrice] = useState<UploadedPriceData | null>(() => loadUploadedPriceData())
   const [sharedPrice, setSharedPrice] = useState<UploadedPriceData | null>(null)
   const [sharedPriceStatus, setSharedPriceStatus] = useState<'loading' | 'ready' | 'missing' | 'invalid'>('loading')
@@ -2327,12 +2363,12 @@ export default function App() {
   const [methodologyOpen, setMethodologyOpen] = useState(false)
   const [visualizationOpen, setVisualizationOpen] = useState(false)
   const [cornerHeightMode, setCornerHeightMode] = useState<'auto' | 'manual'>('auto')
-  const [manualCornerHeight, setManualCornerHeight] = useState<number>(maxFacadeHeight(createDemoProject().facades))
-  const [cassetteSizeL, setCassetteSizeL] = useState('')
-  const [cassetteSizeH, setCassetteSizeH] = useState('')
+  const [manualCornerHeight, setManualCornerHeight] = useState<number>(maxFacadeHeight(createQuickTestProject().facades))
+  const [cassetteSizeL, setCassetteSizeL] = useState('572')
+  const [cassetteSizeH, setCassetteSizeH] = useState('567')
   const [cassetteCoating, setCassetteCoating] = useState<'polyester' | 'colorflow'>('colorflow')
-  const [standardSelectionMode, setStandardSelectionMode] = useState<'none' | 'length' | 'height'>('length')
-  const [subsystemBracketStepMm, setSubsystemBracketStepMm] = useState(defaultSubsystemBracketVerticalStepMm)
+  const [standardSelectionMode, setStandardSelectionMode] = useState<'none' | 'length' | 'height'>('none')
+  const [subsystemBracketStepMm, setSubsystemBracketStepMm] = useState(600)
   const [facadesHelpOpen, setFacadesHelpOpen] = useState(false)
   const [cornersHelpOpen, setCornersHelpOpen] = useState(false)
   const [subsystemTypeHelpOpen, setSubsystemTypeHelpOpen] = useState(false)
@@ -3525,15 +3561,15 @@ export default function App() {
   }
 
   function resetProject() {
-    const nextProject = createDemoProject()
+    const nextProject = createBlankProject()
     setProject(nextProject)
     setCornerHeightMode('auto')
     setManualCornerHeight(maxFacadeHeight(nextProject.facades))
     setCassetteSizeL('')
     setCassetteSizeH('')
     setCassetteCoating('colorflow')
-    setStandardSelectionMode('length')
-    setSubsystemBracketStepMm(defaultSubsystemBracketVerticalStepMm)
+    setStandardSelectionMode('none')
+    setSubsystemBracketStepMm(600)
     setPLevelsHelpOpen(false)
   }
 
@@ -3546,7 +3582,7 @@ export default function App() {
     setCassetteSizeH('567')
     setCassetteCoating('colorflow')
     setStandardSelectionMode('none')
-    setSubsystemBracketStepMm(defaultSubsystemBracketVerticalStepMm)
+    setSubsystemBracketStepMm(600)
     setPLevelsHelpOpen(false)
   }
 
@@ -3846,6 +3882,9 @@ export default function App() {
       <section className="quick-action-panel" aria-label="Быстрые действия">
         <button className="btn btn-quick-action" type="button" onClick={applyQuickTestProject}>
           Заполнить тестовыми данными
+        </button>
+        <button className="btn btn-quick-action" type="button" onClick={resetProject}>
+          Очистить данные
         </button>
         <button className="btn btn-quick-action btn-quick-action-primary" type="button" onClick={() => setVisualizationOpen(true)}>
           Раскладка кассетного поля
