@@ -5149,7 +5149,7 @@ export default function App() {
             <thead>
               <tr>
                 <th>Уп.</th>
-                <th>Габариты упаковки</th>
+                <th>Габариты упаковки (ДхШхВ)</th>
                 <th>Ряды</th>
                 <th>Кассеты</th>
                 <th>Состав</th>
@@ -5161,11 +5161,7 @@ export default function App() {
                 packagingRows.map((row) => (
                   <tr key={row.id}>
                     <td>уп{row.id}</td>
-                    <td>
-                      <div>Длина {formatInt(row.lengthMm)} мм</div>
-                      <div>Ширина {formatInt(row.widthMm)} мм</div>
-                      <div>Высота {formatInt(row.heightMm)} мм</div>
-                    </td>
+                    <td>{formatInt(row.lengthMm)}х{formatInt(row.widthMm)}х{formatInt(row.heightMm)}</td>
                     <td>{formatInt(row.rowCount)}</td>
                     <td>{formatInt(row.pieceCount)} шт</td>
                     <td>
