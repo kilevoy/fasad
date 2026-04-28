@@ -5214,10 +5214,6 @@ export default function App() {
             <div className="pending-cost-name">Стоимость разработки монтажной схемы</div>
             <div className="pending-cost-status">В разработке</div>
           </div>
-          <div className="pending-cost-card">
-            <div className="pending-cost-name">Количество и стоимость упаковки</div>
-            <div className="pending-cost-status">Количество добавлено</div>
-          </div>
         </div>
       </section>
 
