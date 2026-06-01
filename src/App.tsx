@@ -3879,6 +3879,17 @@ export default function App() {
         </div>
         <div className="calc-hero__main">
           <div>
+            <a
+              href="https://kilevoy.github.io/"
+              title="Вернуться в портфолио"
+              style={{
+                display: 'inline-block', marginBottom: 12, padding: '6px 12px',
+                border: '1px solid rgba(148,163,184,0.5)', borderRadius: 8,
+                fontSize: 14, fontWeight: 600, textDecoration: 'none', color: 'inherit',
+              }}
+            >
+              ← Портфолио
+            </a>
             <div className="calc-kicker">ИНСИ / фасадные кассеты</div>
             <h1>Расчет фасадной системы ИНСИ</h1>
             <div className="calc-hero__meta">
